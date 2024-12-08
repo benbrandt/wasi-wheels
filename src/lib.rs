@@ -9,9 +9,11 @@ mod tests {
     use reqwest::Client;
     use serde::Deserialize;
     use serde_json::Value;
+    use tempfile::tempdir;
+    use tokio::fs;
 
     /// Registry information for a given Python project in the registry
-    #[derive(Deserialize)]
+    #[derive(Debug, Deserialize)]
     struct Project {
         name: String,
         files: Vec<ProjectFile>,
@@ -47,9 +49,10 @@ mod tests {
     }
 
     /// Information about a file that has been uploaded for a given project
-    #[derive(Deserialize)]
+    #[derive(Debug, Deserialize)]
     struct ProjectFile {
         filename: String,
+        url: String,
         yanked: Value,
     }
 
@@ -75,6 +78,7 @@ mod tests {
                 .header("Accept", "application/vnd.pypi.simple.v1+json")
                 .send()
                 .await?
+                .error_for_status()?
                 .json()
                 .await?)
         }
@@ -83,9 +87,8 @@ mod tests {
     #[tokio::test]
     async fn can_retrieve_sdist_files_from_pypi() -> anyhow::Result<()> {
         let index = PythonPackageIndex::new("https://pypi.org");
-        let project_name = "pydantic-core";
+        let project = index.project("pydantic-core").await?;
 
-        let project = index.project(project_name).await?;
         let mut versions = project.versions.clone();
         versions.sort();
         let sdist_files = project.sdist_files();
@@ -94,6 +97,26 @@ mod tests {
         assert_eq!(versions.len(), sdist_files.len());
         // The keys match the versions
         assert_eq!(versions, sdist_files.into_keys().sorted().collect_vec());
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn can_download_specific_project_sdist_file() -> anyhow::Result<()> {
+        let index = PythonPackageIndex::new("https://pypi.org");
+        let sdist_files = index.project("pydantic-core").await?.sdist_files();
+        let tempdir = tempdir()?;
+
+        let file = sdist_files.get("2.27.1").unwrap();
+        let bytes = Client::new()
+            .get(&file.url)
+            .send()
+            .await?
+            .error_for_status()?
+            .bytes()
+            .await?;
+
+        fs::write(tempdir.path().join(&file.filename), bytes).await?;
 
         Ok(())
     }
