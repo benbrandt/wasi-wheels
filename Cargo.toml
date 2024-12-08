@@ -7,6 +7,21 @@ repository = "https://github.com/benbrandt/wasi-wheels"
 license = "Apache-2.0"
 
 [dependencies]
+anyhow = "1.0.94"
+reqwest = { version = "0.12.9", default-features = false, features = [
+    "http2",
+    "rustls-tls",
+    "charset",
+    "json",
+    "gzip",
+    "brotli",
+    "zstd",
+    "deflate",
+    "hickory-dns",
+] }
+serde = { version = "1.0.215", features = ["derive"] }
+serde_json = "1.0.133"
+tokio = { version = "1.42.0", features = ["full"] }
 
 [lints.rust]
 future_incompatible = { level = "warn", priority = -1 }
@@ -21,3 +36,6 @@ unused = { level = "warn", priority = -1 }
 
 [lints.clippy]
 pedantic = "warn"
+
+[dev-dependencies]
+tokio = { version = "1.42.0", features = ["test-util"] }
