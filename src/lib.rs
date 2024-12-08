@@ -33,12 +33,14 @@ mod tests {
     /// A client for interacting with a PEP 691 compatible Simple Repository API
     struct PythonPackageIndex {
         client: Client,
+        host: String,
     }
 
     impl PythonPackageIndex {
-        fn new() -> Self {
+        fn new(host: impl Into<String>) -> Self {
             Self {
                 client: Client::new(),
+                host: host.into(),
             }
         }
 
@@ -46,7 +48,7 @@ mod tests {
         async fn project(&self, project_name: &str) -> anyhow::Result<Project> {
             Ok(self
                 .client
-                .get(format!("https://pypi.org/simple/{project_name}/"))
+                .get(format!("{}/simple/{project_name}/", &self.host))
                 .header("Accept", "application/vnd.pypi.simple.v1+json")
                 .send()
                 .await?
@@ -56,8 +58,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn can_parse_pydantic_info_from_pypi() -> anyhow::Result<()> {
-        let index = PythonPackageIndex::new();
+    async fn can_retrieve_sdist_files_from_pypi() -> anyhow::Result<()> {
+        let index = PythonPackageIndex::new("https://pypi.org");
         let project_name = "pydantic-core";
         let project = index.project(project_name).await?;
 
