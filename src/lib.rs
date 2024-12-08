@@ -2,20 +2,31 @@
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use reqwest::Client;
     use serde::Deserialize;
 
     /// Registry information for a given Python project in the registry
     #[derive(Deserialize)]
     struct Project {
-        #[expect(dead_code)]
         files: Vec<ProjectFile>,
+        versions: Vec<String>,
+    }
+
+    impl Project {
+        fn sdist_files(self) -> HashMap<String, ProjectFile> {
+            self.files
+                .into_iter()
+                .filter(|file| file.filename.ends_with("tar.gz"))
+                .map(|file| (file.filename.clone(), file))
+                .collect()
+        }
     }
 
     /// Information about a file that has been uploaded for a given project
     #[derive(Deserialize)]
     struct ProjectFile {
-        #[expect(dead_code)]
         filename: String,
     }
 
@@ -31,10 +42,11 @@ mod tests {
             }
         }
 
-        async fn project(&self, package_name: &str) -> anyhow::Result<Project> {
+        /// Returns all project information for a given package
+        async fn project(&self, project_name: &str) -> anyhow::Result<Project> {
             Ok(self
                 .client
-                .get(format!("https://pypi.org/simple/{package_name}/"))
+                .get(format!("https://pypi.org/simple/{project_name}/"))
                 .header("Accept", "application/vnd.pypi.simple.v1+json")
                 .send()
                 .await?
@@ -45,7 +57,11 @@ mod tests {
 
     #[tokio::test]
     async fn can_parse_pydantic_info_from_pypi() -> anyhow::Result<()> {
-        let _resp = PythonPackageIndex::new().project("pydantic-core").await?;
+        let index = PythonPackageIndex::new();
+        let project_name = "pydantic-core";
+        let project = index.project(project_name).await?;
+
+        assert_eq!(project.versions.len(), project.sdist_files().len());
 
         Ok(())
     }
