@@ -1,0 +1,23 @@
+[package]
+name = "wasi-wheels"
+version = "0.1.0"
+edition = "2021"
+description = "Compile Python wheels for use with WASI targets."
+repository = "https://github.com/benbrandt/wasi-wheels"
+license = "Apache-2.0"
+
+[dependencies]
+
+[lints.rust]
+future_incompatible = { level = "warn", priority = -1 }
+missing_debug_implementations = "warn"
+missing_docs = "warn"
+nonstandard_style = { level = "warn", priority = -1 }
+rust_2018_compatibility = { level = "warn", priority = -1 }
+rust_2018_idioms = { level = "warn", priority = -1 }
+rust_2021_compatibility = { level = "warn", priority = -1 }
+rust_2024_compatibility = { level = "warn", priority = -1 }
+unused = { level = "warn", priority = -1 }
+
+[lints.clippy]
+pedantic = "warn"
