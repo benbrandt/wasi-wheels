@@ -8,6 +8,7 @@ mod tests {
     use itertools::Itertools;
     use reqwest::Client;
     use serde::Deserialize;
+    use serde_json::Value;
 
     /// Registry information for a given Python project in the registry
     #[derive(Deserialize)]
@@ -22,6 +23,13 @@ mod tests {
         fn sdist_files(self) -> HashMap<String, ProjectFile> {
             self.files
                 .into_iter()
+                .filter(|file| match file.yanked {
+                    // Filter if yanked is true
+                    Value::Bool(y) => !y,
+                    // Or any value is present as a string
+                    Value::String(_) => false,
+                    _ => true,
+                })
                 .filter_map(|file| {
                     let filename = file.filename.rsplit_once(".tar.gz")?.0;
                     let version = filename
@@ -42,6 +50,7 @@ mod tests {
     #[derive(Deserialize)]
     struct ProjectFile {
         filename: String,
+        yanked: Value,
     }
 
     /// A client for interacting with a PEP 691 compatible Simple Repository API
