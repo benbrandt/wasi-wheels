@@ -4,11 +4,13 @@
 mod tests {
     use std::collections::HashMap;
 
+    use bytes::Bytes;
     use heck::ToSnakeCase;
     use itertools::Itertools;
     use reqwest::Client;
     use serde::Deserialize;
     use serde_json::Value;
+    use sha2::{Digest, Sha256};
     use tempfile::tempdir;
     use tokio::fs;
 
@@ -52,8 +54,40 @@ mod tests {
     #[derive(Debug, Deserialize)]
     struct ProjectFile {
         filename: String,
+        hashes: Hashes,
         url: String,
         yanked: Value,
+    }
+
+    impl ProjectFile {
+        /// Download and validate the resulting file
+        async fn download(&self) -> anyhow::Result<Bytes> {
+            let bytes = Client::new()
+                .get(&self.url)
+                .send()
+                .await?
+                .error_for_status()?
+                .bytes()
+                .await?;
+
+            if !self.hashes.valid(&bytes)? {
+                return Err(anyhow::anyhow!("File doesn't match hash"));
+            }
+
+            Ok(bytes)
+        }
+    }
+
+    #[derive(Debug, Deserialize)]
+    struct Hashes {
+        sha256: String,
+    }
+
+    impl Hashes {
+        /// Whether or not the file is valid according to the hash
+        fn valid(&self, bytes: impl AsRef<[u8]>) -> anyhow::Result<bool> {
+            Ok(Sha256::digest(bytes)[..] == hex::decode(&self.sha256)?)
+        }
     }
 
     /// A client for interacting with a PEP 691 compatible Simple Repository API
@@ -108,13 +142,7 @@ mod tests {
         let tempdir = tempdir()?;
 
         let file = sdist_files.get("2.27.1").unwrap();
-        let bytes = Client::new()
-            .get(&file.url)
-            .send()
-            .await?
-            .error_for_status()?
-            .bytes()
-            .await?;
+        let bytes = file.download().await?;
 
         fs::write(tempdir.path().join(&file.filename), bytes).await?;
 
