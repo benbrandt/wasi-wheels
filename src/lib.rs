@@ -2,15 +2,17 @@
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::{collections::HashMap, path::Path};
 
     use bytes::Bytes;
+    use flate2::bufread::GzDecoder;
     use heck::ToSnakeCase;
     use itertools::Itertools;
     use reqwest::Client;
     use serde::Deserialize;
     use serde_json::Value;
     use sha2::{Digest, Sha256};
+    use tar::Archive;
     use tempfile::tempdir;
     use tokio::fs;
 
@@ -75,6 +77,20 @@ mod tests {
             }
 
             Ok(bytes)
+        }
+
+        /// Download the sdist archive url and unpack it at the given destination
+        async fn download_sdist_and_unpack(&self, dst: impl AsRef<Path>) -> anyhow::Result<()> {
+            if !self.filename.ends_with(".tar.gz") {
+                return Err(anyhow::anyhow!(
+                    "Project file should only be of sdist type and a gzipped tar archive."
+                ));
+            }
+
+            let bytes = self.download().await?;
+            Archive::new(GzDecoder::new(&bytes[..])).unpack(dst)?;
+
+            Ok(())
         }
     }
 
@@ -142,9 +158,16 @@ mod tests {
         let tempdir = tempdir()?;
 
         let file = sdist_files.get("2.27.1").unwrap();
-        let bytes = file.download().await?;
+        file.download_sdist_and_unpack(tempdir.path()).await?;
 
-        fs::write(tempdir.path().join(&file.filename), bytes).await?;
+        let dir = fs::read_dir(tempdir.path())
+            .await?
+            .next_entry()
+            .await?
+            .unwrap();
+
+        assert_eq!(dir.file_name(), "pydantic_core-2.27.1");
+        assert!(dir.metadata().await?.is_dir());
 
         Ok(())
     }
