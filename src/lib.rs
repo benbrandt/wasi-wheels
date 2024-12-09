@@ -2,7 +2,7 @@
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, path::Path};
+    use std::{collections::HashMap, path::PathBuf};
 
     use bytes::Bytes;
     use flate2::bufread::GzDecoder;
@@ -80,7 +80,7 @@ mod tests {
         }
 
         /// Download the sdist archive url and unpack it at the given destination
-        async fn download_sdist_and_unpack(&self, dst: impl AsRef<Path>) -> anyhow::Result<()> {
+        async fn download_sdist_and_unpack(&self, dst: impl Into<PathBuf>) -> anyhow::Result<()> {
             if !self.filename.ends_with(".tar.gz") {
                 return Err(anyhow::anyhow!(
                     "Project file should only be of sdist type and a gzipped tar archive."
@@ -88,7 +88,11 @@ mod tests {
             }
 
             let bytes = self.download().await?;
-            Archive::new(GzDecoder::new(&bytes[..])).unpack(dst)?;
+            let dst = dst.into();
+            tokio::task::spawn_blocking(move || {
+                Archive::new(GzDecoder::new(&bytes[..])).unpack(dst)
+            })
+            .await??;
 
             Ok(())
         }
