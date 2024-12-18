@@ -17,3 +17,7 @@ target/
 #.idea/
 
 .DS_Store
+
+wasi-sdk*
+cpython-*
+pydantic_core*
