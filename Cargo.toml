@@ -7,7 +7,7 @@ repository = "https://github.com/benbrandt/wasi-wheels"
 license = "Apache-2.0"
 
 [dependencies]
-anyhow = "1.0.94"
+anyhow = "1.0.95"
 bytes = "1.9.0"
 flate2 = "1.0.35"
 heck = "0.5.0"
@@ -25,7 +25,7 @@ reqwest = { version = "0.12.9", default-features = false, features = [
     "hickory-dns",
 ] }
 serde = { version = "1.0.216", features = ["derive"] }
-serde_json = "1.0.133"
+serde_json = "1.0.134"
 sha2 = "0.10.8"
 tar = "0.4.43"
 tokio = { version = "1.42.0", features = ["full"] }
