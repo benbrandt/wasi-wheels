@@ -1,8 +1,8 @@
 //! Prep cpython wasi build
 
-use std::{env, fs, iter, path::PathBuf, process::Command};
+use std::{env, fs, path::PathBuf, process::Command};
 
-use anyhow::{bail, Context};
+use wasi_wheels::run;
 
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 const PYTHON_EXECUTABLE: &str = "python.exe";
@@ -11,11 +11,11 @@ const PYTHON_EXECUTABLE: &str = "python";
 
 fn main() -> anyhow::Result<()> {
     let repo_dir = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
-    let cpython_dir = repo_dir.join("cpython-3.13.1");
+    let cpython_dir = repo_dir.join("cpython-3.12.8");
     let cpython_wasi_dir = cpython_dir.join("builddir/wasi");
     let cpython_native_dir = cpython_dir.join("builddir/build");
-    if !cpython_wasi_dir.join("libpython3.13.so").exists()
-        && !cpython_wasi_dir.join("libpython3.13.a").exists()
+    if !cpython_wasi_dir.join("libpython3.12.so").exists()
+        && !cpython_wasi_dir.join("libpython3.12.a").exists()
     {
         if !cpython_native_dir.join(PYTHON_EXECUTABLE).exists() {
             fs::create_dir_all(&cpython_native_dir)?;
@@ -56,26 +56,4 @@ fn main() -> anyhow::Result<()> {
     }
 
     Ok(())
-}
-
-fn run(command: &mut Command) -> anyhow::Result<Vec<u8>> {
-    let command_string = iter::once(command.get_program())
-        .chain(command.get_args())
-        .map(|arg| arg.to_string_lossy())
-        .collect::<Vec<_>>()
-        .join(" ");
-
-    let output = command.output().with_context({
-        let command_string = command_string.clone();
-        move || command_string
-    })?;
-
-    if output.status.success() {
-        Ok(output.stdout)
-    } else {
-        bail!(
-            "command `{command_string}` failed: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
 }

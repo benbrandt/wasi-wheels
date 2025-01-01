@@ -1,5 +1,36 @@
 //! Tooling to generate Python wheels usable in WASI contexts and consumable as a Python registry.
 
+use std::{iter, process::Command};
+
+use anyhow::{bail, Context};
+
+/// Run a given command with common error handling behavior
+///
+/// # Errors
+///
+/// Returns error if the command fails for any reason.
+pub fn run(command: &mut Command) -> anyhow::Result<Vec<u8>> {
+    let command_string = iter::once(command.get_program())
+        .chain(command.get_args())
+        .map(|arg| arg.to_string_lossy())
+        .collect::<Vec<_>>()
+        .join(" ");
+
+    let output = command.output().with_context({
+        let command_string = command_string.clone();
+        move || command_string
+    })?;
+
+    if output.status.success() {
+        Ok(output.stdout)
+    } else {
+        bail!(
+            "command `{command_string}` failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{collections::HashMap, path::PathBuf};
