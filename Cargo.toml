@@ -45,5 +45,5 @@ unused = { level = "warn", priority = -1 }
 pedantic = "warn"
 
 [dev-dependencies]
-tempfile = "3.14.0"
+tempfile = "3.15.0"
 tokio = { version = "1.42.0", features = ["test-util"] }
