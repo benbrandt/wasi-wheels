@@ -19,5 +19,5 @@ target/
 .DS_Store
 
 wasi-sdk*
-cpython-*
+cpython*
 pydantic_core*
