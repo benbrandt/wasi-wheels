@@ -1,8 +1,10 @@
 //! Tooling to generate Python wheels usable in WASI contexts and consumable as a Python registry.
 
-use std::{iter, process::Command};
+use std::{env, fs, iter, path::PathBuf, process::Command, sync::LazyLock};
 
 use anyhow::{bail, Context};
+use flate2::bufread::GzDecoder;
+use tar::Archive;
 
 /// Run a given command with common error handling behavior
 ///
@@ -29,6 +31,40 @@ pub fn run(command: &mut Command) -> anyhow::Result<Vec<u8>> {
             String::from_utf8_lossy(&output.stderr)
         );
     }
+}
+
+static REPO_DIR: LazyLock<PathBuf> =
+    LazyLock::new(|| PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap()));
+
+/// Downloads the prepares the WASI-SDK for use in compilation steps
+///
+/// # Errors
+/// Will error if WASI SDK cannot be downloaded, or if called on an unsupported OS or Architecture.
+pub fn download_wasi_sdk() -> anyhow::Result<()> {
+    const WASI_SDK_DIR: &str = "wasi-sdk";
+    const WASI_SDK_RELEASE: &str = "wasi-sdk-25";
+    const WASI_SDK_VERSION: &str = "25.0";
+
+    if !fs::exists(WASI_SDK_DIR)? {
+        let arch = match env::consts::ARCH {
+            arch @ "x86_64" => arch,
+            "aarch64" => "arm64",
+            _ => return Err(anyhow::anyhow!("Unsupported architecture")),
+        };
+        let os @ ("linux" | "macos" | "windows") = env::consts::OS else {
+            return Err(anyhow::anyhow!("Unsupported OS"));
+        };
+
+        let download_dir = format!("wasi-sdk-{WASI_SDK_VERSION}-{arch}-{os}");
+        let bytes = reqwest::blocking::get(format!("https://github.com/WebAssembly/wasi-sdk/releases/download/{WASI_SDK_RELEASE}/{download_dir}.tar.gz"))?
+        .error_for_status()?
+        .bytes()?;
+
+        Archive::new(GzDecoder::new(&bytes[..])).unpack(REPO_DIR.as_path())?;
+        fs::rename(download_dir, WASI_SDK_DIR)?;
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
