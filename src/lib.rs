@@ -228,6 +228,11 @@ mod tests {
                 })
                 .collect()
         }
+
+        /// Only return the sdist directory for the specified release
+        fn sdist(self, version: &str) -> Option<ProjectFile> {
+            self.sdist_files().remove(version)
+        }
     }
 
     /// Information about a file that has been uploaded for a given project
@@ -294,6 +299,12 @@ mod tests {
         host: String,
     }
 
+    impl Default for PythonPackageIndex {
+        fn default() -> Self {
+            Self::new("https://pypi.org")
+        }
+    }
+
     impl PythonPackageIndex {
         fn new(host: impl Into<String>) -> Self {
             Self {
@@ -318,7 +329,7 @@ mod tests {
 
     #[tokio::test]
     async fn can_retrieve_sdist_files_from_pypi() -> anyhow::Result<()> {
-        let index = PythonPackageIndex::new("https://pypi.org");
+        let index = PythonPackageIndex::default();
         let project = index.project("pydantic-core").await?;
 
         let mut versions = project.versions.clone();
@@ -335,11 +346,12 @@ mod tests {
 
     #[tokio::test]
     async fn can_download_specific_project_sdist_file() -> anyhow::Result<()> {
-        let index = PythonPackageIndex::new("https://pypi.org");
-        let sdist_files = index.project("pydantic-core").await?.sdist_files();
         let tempdir = tempdir()?;
+        let project = PythonPackageIndex::default()
+            .project("pydantic-core")
+            .await?;
 
-        let file = sdist_files.get("2.27.1").unwrap();
+        let file = project.sdist("2.27.1").unwrap();
         file.download_sdist_and_unpack(tempdir.path()).await?;
 
         let dir = fs::read_dir(tempdir.path())
