@@ -91,25 +91,33 @@ pub fn download_and_compile_cpython() -> anyhow::Result<()> {
     const PYTHON_EXECUTABLE: &str = "python.exe";
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     const PYTHON_EXECUTABLE: &str = "python";
+    const GITHUB_USER: &str = "benbrandt";
+    const GITHUB_REPO: &str = "cpython";
+    const GITHUB_BRANCH: &str = "3.12-wasi";
+    const PYTHON_VERSION: &str = "3.12";
 
     // Make sure WASI SDK is available
     download_wasi_sdk()?;
 
     if !fs::exists(&*CPYTHON)? {
         let bytes = reqwest::blocking::get(
-            "https://github.com/benbrandt/cpython/archive/refs/heads/3.12-wasi.tar.gz",
+            format!("https://github.com/{GITHUB_USER}/{GITHUB_REPO}/archive/refs/heads/{GITHUB_BRANCH}.tar.gz"),
         )?
         .error_for_status()?
         .bytes()?;
 
         Archive::new(GzDecoder::new(&bytes[..])).unpack(REPO_DIR.as_path())?;
-        fs::rename("cpython-3.12-wasi", &*CPYTHON)?;
+        fs::rename(format!("{GITHUB_REPO}-{GITHUB_BRANCH}"), &*CPYTHON)?;
     }
 
     let cpython_wasi_dir = CPYTHON.join("builddir/wasi");
     let cpython_native_dir = CPYTHON.join("builddir/build");
-    if !cpython_wasi_dir.join("libpython3.12.so").exists()
-        && !cpython_wasi_dir.join("libpython3.12.a").exists()
+    if !cpython_wasi_dir
+        .join(format!("libpython{PYTHON_VERSION}.so"))
+        .exists()
+        && !cpython_wasi_dir
+            .join(format!("libpython{PYTHON_VERSION}.a"))
+            .exists()
     {
         if !cpython_native_dir.join(PYTHON_EXECUTABLE).exists() {
             fs::create_dir_all(&cpython_native_dir)?;
