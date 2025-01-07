@@ -1,4 +1,4 @@
-//! Prep cpython wasi build
+//! Prep Cpython and WASI SDK tooling
 
 use wasi_wheels::download_and_compile_cpython;
 
