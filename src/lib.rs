@@ -37,3 +37,27 @@ pub async fn run(command: &mut Command) -> anyhow::Result<Vec<u8>> {
         );
     }
 }
+
+/// Run a given command, passing stdout and stderr to parent
+///
+/// # Errors
+///
+/// Returns error if the command fails for any reason.
+pub async fn run_inherit(command: &mut Command) -> anyhow::Result<()> {
+    let command_string = iter::once(command.as_std().get_program())
+        .chain(command.as_std().get_args())
+        .map(|arg| arg.to_string_lossy())
+        .collect::<Vec<_>>()
+        .join(" ");
+
+    let status = command.status().await.with_context({
+        let command_string = command_string.clone();
+        move || command_string
+    })?;
+
+    if status.success() {
+        Ok(())
+    } else {
+        bail!("command `{command_string}` failed",);
+    }
+}

@@ -20,6 +20,18 @@ pub async fn download_sdist(
     release_version: &str,
     output_dir: Option<PathBuf>,
 ) -> anyhow::Result<()> {
+    let output_dir = output_dir.unwrap_or_else(|| REPO_DIR.join("sdist"));
+
+    if output_dir
+        .join(format!("{project}-{release_version}"))
+        .exists()
+        || output_dir
+            .join(format!("{}-{release_version}", project.to_snake_case()))
+            .exists()
+    {
+        return Ok(());
+    }
+
     PythonPackageIndex::default()
         .project(project)
         .await?
@@ -27,7 +39,7 @@ pub async fn download_sdist(
         .ok_or(anyhow::anyhow!(
             "No version {release_version} for project {project}"
         ))?
-        .download_sdist_and_unpack(output_dir.unwrap_or_else(|| REPO_DIR.join("sdist")))
+        .download_sdist_and_unpack(output_dir)
         .await?;
     Ok(())
 }
