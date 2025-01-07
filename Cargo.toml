@@ -14,7 +14,6 @@ heck = "0.5.0"
 hex = "0.4.3"
 itertools = "0.14.0"
 reqwest = { version = "0.12.12", default-features = false, features = [
-    "blocking",
     "http2",
     "rustls-tls",
     "charset",

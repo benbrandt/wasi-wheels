@@ -1,24 +1,25 @@
 //! Tooling to generate Python wheels usable in WASI contexts and consumable as a Python registry.
 
-use std::{env, fs, iter, path::PathBuf, process::Command, sync::LazyLock};
+use std::{env, iter, path::PathBuf, sync::LazyLock};
 
 use anyhow::{bail, Context};
 use flate2::bufread::GzDecoder;
 use tar::Archive;
+use tokio::{fs, process::Command};
 
 /// Run a given command with common error handling behavior
 ///
 /// # Errors
 ///
 /// Returns error if the command fails for any reason.
-pub fn run(command: &mut Command) -> anyhow::Result<Vec<u8>> {
-    let command_string = iter::once(command.get_program())
-        .chain(command.get_args())
+pub async fn run(command: &mut Command) -> anyhow::Result<Vec<u8>> {
+    let command_string = iter::once(command.as_std().get_program())
+        .chain(command.as_std().get_args())
         .map(|arg| arg.to_string_lossy())
         .collect::<Vec<_>>()
         .join(" ");
 
-    let output = command.output().with_context({
+    let output = command.output().await.with_context({
         let command_string = command_string.clone();
         move || command_string
     })?;
@@ -45,11 +46,11 @@ pub static CPYTHON: LazyLock<PathBuf> = LazyLock::new(|| REPO_DIR.join("cpython"
 ///
 /// # Errors
 /// Will error if WASI SDK cannot be downloaded, or if called on an unsupported OS or Architecture.
-pub fn download_wasi_sdk() -> anyhow::Result<()> {
+pub async fn download_wasi_sdk() -> anyhow::Result<()> {
     const WASI_SDK_RELEASE: &str = "wasi-sdk-25";
     const WASI_SDK_VERSION: &str = "25.0";
 
-    if !fs::exists(&*WASI_SDK)? {
+    if !WASI_SDK.exists() {
         let arch = match env::consts::ARCH {
             arch @ "x86_64" => arch,
             "aarch64" => "arm64",
@@ -60,19 +61,24 @@ pub fn download_wasi_sdk() -> anyhow::Result<()> {
         };
 
         let download_dir = format!("wasi-sdk-{WASI_SDK_VERSION}-{arch}-{os}");
-        let bytes = reqwest::blocking::get(format!("https://github.com/WebAssembly/wasi-sdk/releases/download/{WASI_SDK_RELEASE}/{download_dir}.tar.gz"))?
-        .error_for_status()?
-        .bytes()?;
+        let bytes = reqwest::get(format!("https://github.com/WebAssembly/wasi-sdk/releases/download/{WASI_SDK_RELEASE}/{download_dir}.tar.gz"))
+            .await?
+            .error_for_status()?
+            .bytes()
+            .await?;
 
-        Archive::new(GzDecoder::new(&bytes[..])).unpack(REPO_DIR.as_path())?;
-        fs::rename(download_dir, &*WASI_SDK)?;
+        tokio::task::spawn_blocking(move || {
+            Archive::new(GzDecoder::new(&bytes[..])).unpack(REPO_DIR.as_path())
+        })
+        .await??;
+        fs::rename(download_dir, &*WASI_SDK).await?;
 
         // Hack for cpython to use wasip2 files. Uses wasip2 for wasi
         let sysroot_path = WASI_SDK.join("share").join("wasi-sysroot");
         for dir in ["include", "lib", "share"] {
             let dir = sysroot_path.join(dir);
-            fs::rename(dir.join("wasm32-wasi"), dir.join("wasm32-wasi-bk"))?;
-            fs::rename(dir.join("wasm32-wasip2"), dir.join("wasm32-wasi"))?;
+            fs::rename(dir.join("wasm32-wasi"), dir.join("wasm32-wasi-bk")).await?;
+            fs::rename(dir.join("wasm32-wasip2"), dir.join("wasm32-wasi")).await?;
         }
     }
 
@@ -86,7 +92,7 @@ pub fn download_wasi_sdk() -> anyhow::Result<()> {
 ///
 /// # Panics
 /// If certain paths are invalid because of failed download
-pub fn download_and_compile_cpython() -> anyhow::Result<()> {
+pub async fn download_and_compile_cpython() -> anyhow::Result<()> {
     #[cfg(any(target_os = "macos", target_os = "windows"))]
     const PYTHON_EXECUTABLE: &str = "python.exe";
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
@@ -97,17 +103,21 @@ pub fn download_and_compile_cpython() -> anyhow::Result<()> {
     const PYTHON_VERSION: &str = "3.12";
 
     // Make sure WASI SDK is available
-    download_wasi_sdk()?;
+    download_wasi_sdk().await?;
 
-    if !fs::exists(&*CPYTHON)? {
-        let bytes = reqwest::blocking::get(
+    if !CPYTHON.exists() {
+        let bytes = reqwest::get(
             format!("https://github.com/{GITHUB_USER}/{GITHUB_REPO}/archive/refs/heads/{GITHUB_BRANCH}.tar.gz"),
-        )?
-        .error_for_status()?
-        .bytes()?;
-
-        Archive::new(GzDecoder::new(&bytes[..])).unpack(REPO_DIR.as_path())?;
-        fs::rename(format!("{GITHUB_REPO}-{GITHUB_BRANCH}"), &*CPYTHON)?;
+        )
+            .await?
+            .error_for_status()?
+            .bytes()
+            .await?;
+        tokio::task::spawn_blocking(move || {
+            Archive::new(GzDecoder::new(&bytes[..])).unpack(REPO_DIR.as_path())
+        })
+        .await??;
+        fs::rename(format!("{GITHUB_REPO}-{GITHUB_BRANCH}"), &*CPYTHON).await?;
     }
 
     let cpython_wasi_dir = CPYTHON.join("builddir/wasi");
@@ -120,22 +130,23 @@ pub fn download_and_compile_cpython() -> anyhow::Result<()> {
             .exists()
     {
         if !cpython_native_dir.join(PYTHON_EXECUTABLE).exists() {
-            fs::create_dir_all(&cpython_native_dir)?;
-            fs::create_dir_all(&cpython_wasi_dir)?;
+            fs::create_dir_all(&cpython_native_dir).await?;
+            fs::create_dir_all(&cpython_wasi_dir).await?;
 
             run(Command::new("../../configure")
                 .current_dir(&cpython_native_dir)
                 .arg(format!(
                     "--prefix={}/install",
                     cpython_native_dir.to_str().unwrap()
-                )))?;
+                )))
+            .await?;
 
-            run(Command::new("make").current_dir(&cpython_native_dir))?;
+            run(Command::new("make").current_dir(&cpython_native_dir)).await?;
         }
 
-        let config_guess = String::from_utf8(run(
-            Command::new("../../config.guess").current_dir(&cpython_wasi_dir)
-        )?)?;
+        let config_guess = String::from_utf8(
+            run(Command::new("../../config.guess").current_dir(&cpython_wasi_dir)).await?,
+        )?;
 
         run(Command::new("../../Tools/wasm/wasi-env")
             .env("WASI_SDK_PATH", WASI_SDK.to_str().unwrap())
@@ -155,11 +166,13 @@ pub fn download_and_compile_cpython() -> anyhow::Result<()> {
                 "--enable-wasm-dynamic-linking",
                 "--enable-ipv6",
                 "--disable-test-modules",
-            ]))?;
+            ]))
+        .await?;
 
         run(Command::new("make")
             .current_dir(&cpython_wasi_dir)
-            .arg("install"))?;
+            .arg("install"))
+        .await?;
     }
 
     Ok(())
