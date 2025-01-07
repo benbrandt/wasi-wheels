@@ -9,9 +9,32 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use tar::Archive;
 
+use crate::REPO_DIR;
+
+/// Download the sdist package for the specified project and version
+///
+/// # Errors
+/// Will error if the project or version cannot be found or unpacked.
+pub async fn download_sdist(
+    project: &str,
+    release_version: &str,
+    output_dir: Option<PathBuf>,
+) -> anyhow::Result<()> {
+    PythonPackageIndex::default()
+        .project(project)
+        .await?
+        .sdist(release_version)
+        .ok_or(anyhow::anyhow!(
+            "No version {release_version} for project {project}"
+        ))?
+        .download_sdist_and_unpack(output_dir.unwrap_or_else(|| REPO_DIR.join("sdist")))
+        .await?;
+    Ok(())
+}
+
 /// Registry information for a given Python project in the registry
 #[derive(Debug, Deserialize)]
-pub struct Project {
+struct Project {
     /// Name of the project
     name: String,
     /// Files information available to download
@@ -23,7 +46,7 @@ pub struct Project {
 impl Project {
     /// Only return the relevant project file for the source code of each release
     #[must_use]
-    pub fn sdist_files(self) -> HashMap<String, ProjectFile> {
+    fn sdist_files(self) -> HashMap<String, ProjectFile> {
         self.files
             .into_iter()
             .filter(|file| match file.yanked {
@@ -51,14 +74,14 @@ impl Project {
 
     /// Only return the sdist directory for the specified release
     #[must_use]
-    pub fn sdist(self, version: &str) -> Option<ProjectFile> {
+    fn sdist(self, version: &str) -> Option<ProjectFile> {
         self.sdist_files().remove(version)
     }
 }
 
 /// Information about a file that has been uploaded for a given project
 #[derive(Debug, Deserialize)]
-pub struct ProjectFile {
+struct ProjectFile {
     /// Name of the file that can be downloaded
     filename: String,
     /// Hashes available for validating the file contents
@@ -91,7 +114,7 @@ impl ProjectFile {
     ///
     /// # Errors
     /// Will error if the file fails to download or unpack at the given destination.
-    pub async fn download_sdist_and_unpack(&self, dst: impl Into<PathBuf>) -> anyhow::Result<()> {
+    async fn download_sdist_and_unpack(&self, dst: impl Into<PathBuf>) -> anyhow::Result<()> {
         if !self.filename.ends_with(".tar.gz") {
             return Err(anyhow::anyhow!(
                 "Project file should only be of sdist type and a gzipped tar archive."
@@ -122,7 +145,7 @@ impl Hashes {
 
 /// A client for interacting with a PEP 691 compatible Simple Repository API
 #[derive(Debug)]
-pub struct PythonPackageIndex {
+struct PythonPackageIndex {
     client: Client,
     host: String,
 }
@@ -135,7 +158,7 @@ impl Default for PythonPackageIndex {
 
 impl PythonPackageIndex {
     /// Generate new client that points to the given host
-    pub fn new(host: impl Into<String>) -> Self {
+    fn new(host: impl Into<String>) -> Self {
         Self {
             client: Client::new(),
             host: host.into(),
@@ -146,7 +169,7 @@ impl PythonPackageIndex {
     ///
     /// # Errors
     /// Will error if host does not support JSON version of registry information
-    pub async fn project(&self, project_name: &str) -> anyhow::Result<Project> {
+    async fn project(&self, project_name: &str) -> anyhow::Result<Project> {
         Ok(self
             .client
             .get(format!("{}/simple/{project_name}/", &self.host))

@@ -20,4 +20,4 @@ target/
 
 wasi-sdk*
 cpython*
-pydantic_core*
+sdist/*

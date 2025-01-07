@@ -2,7 +2,6 @@
 
 use assert_cmd::Command;
 use tempfile::tempdir;
-use wasi_wheels::{CPYTHON, WASI_SDK};
 
 #[test]
 fn install_build_tools() -> anyhow::Result<()> {
@@ -12,8 +11,8 @@ fn install_build_tools() -> anyhow::Result<()> {
 
     assert.success();
 
-    assert!(std::fs::read_dir(&*WASI_SDK)?.count() > 0);
-    assert!(std::fs::read_dir(&*CPYTHON)?.count() > 0);
+    assert!(std::fs::read_dir("wasi-sdk")?.count() > 0);
+    assert!(std::fs::read_dir("cpython")?.count() > 0);
 
     Ok(())
 }

@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
-use wasi_wheels::{download_and_compile_cpython, download_sdist};
+use wasi_wheels::{download_sdist, install_build_tools};
 
 #[derive(Debug, Parser)]
 #[command(version, about, long_about = None, propagate_version = true)]
@@ -22,7 +22,7 @@ enum Commands {
         project: String,
         /// Which released version you want to download
         release_version: String,
-        /// Where to download. Defaults to current directory
+        /// Where to download. Defaults to "sdist" directory in current directory
         #[arg(short, long)]
         output_dir: Option<PathBuf>,
     },
@@ -33,7 +33,7 @@ async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::InstallBuildTools => download_and_compile_cpython().await?,
+        Commands::InstallBuildTools => install_build_tools().await?,
         Commands::Sdist {
             project,
             release_version,
