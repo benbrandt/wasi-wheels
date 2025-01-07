@@ -130,7 +130,11 @@ async fn download_and_compile_cpython() -> anyhow::Result<()> {
         }
 
         let config_guess = String::from_utf8(
-            run(Command::new("../../config.guess").current_dir(&cpython_wasi_dir)).await?,
+            Command::new("../../config.guess")
+                .current_dir(&cpython_wasi_dir)
+                .output()
+                .await?
+                .stdout,
         )?;
 
         run(Command::new("../../Tools/wasm/wasi-env")

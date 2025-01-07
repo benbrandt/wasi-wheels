@@ -1,6 +1,6 @@
 use tokio::{fs, process::Command};
 
-use crate::{run, run_inherit, REPO_DIR};
+use crate::{run, REPO_DIR};
 
 use super::{CPYTHON, WASI_SDK};
 
@@ -31,7 +31,7 @@ maturin build --release --target wasm32-wasip1 --out dist -i python3.12",
     )
     .await?;
 
-    run_inherit(Command::new("bash")
+    run(Command::new("bash")
         .arg("./run_build.sh")
         .current_dir(package_dir)
         .env("CROSS_PREFIX", &cross_prefix)

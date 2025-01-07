@@ -16,34 +16,7 @@ pub use python_registry::download_sdist;
 /// # Errors
 ///
 /// Returns error if the command fails for any reason.
-pub async fn run(command: &mut Command) -> anyhow::Result<Vec<u8>> {
-    let command_string = iter::once(command.as_std().get_program())
-        .chain(command.as_std().get_args())
-        .map(|arg| arg.to_string_lossy())
-        .collect::<Vec<_>>()
-        .join(" ");
-
-    let output = command.output().await.with_context({
-        let command_string = command_string.clone();
-        move || command_string
-    })?;
-
-    if output.status.success() {
-        Ok(output.stdout)
-    } else {
-        bail!(
-            "command `{command_string}` failed: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-}
-
-/// Run a given command, passing stdout and stderr to parent
-///
-/// # Errors
-///
-/// Returns error if the command fails for any reason.
-pub async fn run_inherit(command: &mut Command) -> anyhow::Result<()> {
+pub async fn run(command: &mut Command) -> anyhow::Result<()> {
     let command_string = iter::once(command.as_std().get_program())
         .chain(command.as_std().get_args())
         .map(|arg| arg.to_string_lossy())
