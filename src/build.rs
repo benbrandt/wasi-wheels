@@ -6,6 +6,8 @@ use tokio::{fs, process::Command};
 
 use crate::run;
 
+mod pydantic;
+
 /// Current directory of this repository
 pub static REPO_DIR: LazyLock<PathBuf> =
     LazyLock::new(|| PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap()));
