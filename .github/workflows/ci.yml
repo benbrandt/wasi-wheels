@@ -31,6 +31,7 @@ jobs:
         with:
           python-version: "3.12"
 
+      - run: cargo run -- install-build-tools
       - run: cargo test --workspace --all-features
 
   lints:
