@@ -9,6 +9,7 @@ license = "Apache-2.0"
 [dependencies]
 anyhow = "1.0.95"
 bytes = "1.9.0"
+clap = { version = "4.5.23", features = ["derive"] }
 flate2 = "1.0.35"
 heck = "0.5.0"
 hex = "0.4.3"
@@ -45,5 +46,6 @@ unused = { level = "warn", priority = -1 }
 pedantic = "warn"
 
 [dev-dependencies]
+assert_cmd = "2.0.16"
 tempfile = "3.15.0"
 tokio = { version = "1.42.0", features = ["test-util"] }
