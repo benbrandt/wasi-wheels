@@ -37,3 +37,16 @@ fn download_sdist() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn build_pydantic() -> anyhow::Result<()> {
+    let assert = Command::cargo_bin("wasi-wheels")?
+        .args(["build", "pydantic-core", "2.27.2"])
+        .assert();
+
+    assert.success();
+
+    assert!(std::fs::read_dir("sdist/pydantic_core-2.27.2/dist")?.count() > 0);
+
+    Ok(())
+}
