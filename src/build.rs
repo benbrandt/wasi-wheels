@@ -8,6 +8,8 @@ use crate::run;
 
 mod pydantic;
 
+/// Currently supported Python version
+const PYTHON_VERSION: &str = "3.12";
 /// Current directory of this repository
 pub static REPO_DIR: LazyLock<PathBuf> =
     LazyLock::new(|| PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap()));
@@ -88,7 +90,6 @@ async fn download_and_compile_cpython() -> anyhow::Result<()> {
     const GITHUB_USER: &str = "benbrandt";
     const GITHUB_REPO: &str = "cpython";
     const GITHUB_BRANCH: &str = "3.12-wasi";
-    const PYTHON_VERSION: &str = "3.12";
 
     if !CPYTHON.exists() {
         let bytes = reqwest::get(
