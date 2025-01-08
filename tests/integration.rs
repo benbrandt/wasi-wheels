@@ -25,7 +25,7 @@ fn download_sdist() -> anyhow::Result<()> {
         .args([
             "sdist",
             "pydantic-core",
-            "2.27.1",
+            "2.27.2",
             "-o",
             temp_dir.path().to_str().unwrap(),
         ])
@@ -33,7 +33,7 @@ fn download_sdist() -> anyhow::Result<()> {
 
     assert.success();
 
-    assert!(std::fs::read_dir(temp_dir.path().join("pydantic_core-2.27.1"))?.count() > 0);
+    assert!(std::fs::read_dir(temp_dir.path().join("pydantic_core-2.27.2"))?.count() > 0);
 
     Ok(())
 }

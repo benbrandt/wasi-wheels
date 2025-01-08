@@ -226,7 +226,7 @@ mod tests {
             .project("pydantic-core")
             .await?;
 
-        let file = project.sdist("2.27.1").unwrap();
+        let file = project.sdist("2.27.2").unwrap();
         file.download_sdist_and_unpack(tempdir.path()).await?;
 
         let dir = fs::read_dir(tempdir.path())
@@ -235,7 +235,7 @@ mod tests {
             .await?
             .unwrap();
 
-        assert_eq!(dir.file_name(), "pydantic_core-2.27.1");
+        assert_eq!(dir.file_name(), "pydantic_core-2.27.2");
         assert!(dir.metadata().await?.is_dir());
 
         Ok(())

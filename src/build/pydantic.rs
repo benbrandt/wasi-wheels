@@ -6,7 +6,7 @@ use super::{CPYTHON, WASI_SDK};
 
 async fn build() -> anyhow::Result<()> {
     const PYTHON_VERSION: &str = "3.12";
-    let package_dir = REPO_DIR.join("sdist/pydantic_core-2.27.1");
+    let package_dir = REPO_DIR.join("sdist/pydantic_core-2.27.2");
 
     if !package_dir.join(".venv").exists() {
         run(Command::new("python3.12")
@@ -66,7 +66,7 @@ mod tests {
 
     #[tokio::test]
     async fn can_build_pydantic() -> anyhow::Result<()> {
-        download_sdist("pydantic-core", "2.27.1", None).await?;
+        download_sdist("pydantic-core", "2.27.2", None).await?;
         build().await
     }
 }
