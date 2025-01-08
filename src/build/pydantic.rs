@@ -6,7 +6,8 @@ use crate::{download_sdist, run, REPO_DIR};
 
 use super::{CPYTHON, PYTHON_VERSION, WASI_SDK};
 
-pub async fn build(version: &str, output_dir: Option<PathBuf>) -> anyhow::Result<()> {
+/// Builds Pydantic and returns the wheel path for publishing
+pub async fn build(version: &str, output_dir: Option<PathBuf>) -> anyhow::Result<PathBuf> {
     let output_dir = output_dir.unwrap_or_else(|| REPO_DIR.join("sdist"));
     let package_dir = output_dir.join(format!("pydantic_core-{version}"));
     download_sdist("pydantic-core", version, Some(output_dir)).await?;
@@ -41,7 +42,7 @@ pub async fn build(version: &str, output_dir: Option<PathBuf>) -> anyhow::Result
 
         run(Command::new("bash")
             .arg("./run_build.sh")
-            .current_dir(package_dir)
+            .current_dir(&package_dir)
             .env("CROSS_PREFIX", &cross_prefix)
             .env("WASI_SDK_PATH", &*WASI_SDK)
             .env("PYO3_CROSS_LIB_DIR", &lib_wasi)
@@ -64,7 +65,7 @@ pub async fn build(version: &str, output_dir: Option<PathBuf>) -> anyhow::Result
         ).await?;
     }
 
-    Ok(())
+    Ok(wheel)
 }
 
 #[cfg(test)]

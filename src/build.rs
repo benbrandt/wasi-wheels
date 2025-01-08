@@ -2,6 +2,9 @@ use std::{env, path::PathBuf, sync::LazyLock};
 
 use build_tools::{download_and_compile_cpython, download_wasi_sdk};
 use clap::ValueEnum;
+use tokio::process::Command;
+
+use crate::run;
 
 mod build_tools;
 mod pydantic;
@@ -31,7 +34,8 @@ pub async fn install_build_tools() -> anyhow::Result<()> {
 }
 
 /// Projects that we support builds for
-#[derive(Debug, Clone, Copy, ValueEnum)]
+#[derive(Debug, Clone, Copy, ValueEnum, strum::Display)]
+#[strum(serialize_all = "kebab-case")]
 pub enum SupportedProjects {
     /// <https://pypi.org/project/pydantic-core/>
     PydanticCore,
@@ -45,8 +49,32 @@ pub async fn build(
     project: SupportedProjects,
     release_version: &str,
     output_dir: Option<PathBuf>,
+    publish: bool,
 ) -> anyhow::Result<()> {
-    match project {
-        SupportedProjects::PydanticCore => pydantic::build(release_version, output_dir).await,
+    let wheel_path = match project {
+        SupportedProjects::PydanticCore => pydantic::build(release_version, output_dir).await?,
+    };
+    if publish {
+        publish_release(project, release_version, wheel_path).await?;
     }
+    Ok(())
+}
+
+async fn publish_release(
+    project: SupportedProjects,
+    release_version: &str,
+    wheel_path: PathBuf,
+) -> anyhow::Result<()> {
+    let tag = format!("{project}-{release_version}");
+    run(Command::new("gh").args([
+        "release",
+        "create",
+        &tag,
+        wheel_path.to_str().unwrap(),
+        "--title",
+        &tag,
+        "--notes",
+        &format!("Generated using `wasi-wheels build {project} {release_version} --publish`"),
+    ]))
+    .await
 }

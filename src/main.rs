@@ -35,6 +35,9 @@ enum Commands {
         /// Where to download. Defaults to "sdist" directory in current directory
         #[arg(short, long)]
         output_dir: Option<PathBuf>,
+        /// Optionally publish the wheel as a release in GitHub
+        #[arg(long)]
+        publish: bool,
     },
 }
 
@@ -53,6 +56,7 @@ async fn main() -> anyhow::Result<()> {
             project,
             release_version,
             output_dir,
-        } => build(project, &release_version, output_dir).await,
+            publish,
+        } => build(project, &release_version, output_dir, publish).await,
     }
 }
