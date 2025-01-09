@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
-use wasi_wheels::{build, download_package, install_build_tools, SupportedProjects};
+use wasi_wheels::{build, download_package, install_build_tools, PythonVersion, SupportedProjects};
 
 #[derive(Debug, Parser)]
 #[command(version, about, long_about = None, propagate_version = true)]
@@ -38,6 +38,9 @@ enum Commands {
         /// Optionally publish the wheel as a release in GitHub
         #[arg(long)]
         publish: bool,
+        /// Python versions to build with. Defaults to all supported versions
+        #[arg(long, value_enum, default_values_t=[PythonVersion::Py3_12, PythonVersion::Py3_13])]
+        python_versions: Vec<PythonVersion>,
     },
 }
 
@@ -57,6 +60,16 @@ async fn main() -> anyhow::Result<()> {
             release_version,
             output_dir,
             publish,
-        } => build(project, &release_version, output_dir, publish).await,
+            python_versions,
+        } => {
+            build(
+                project,
+                &release_version,
+                output_dir,
+                &python_versions,
+                publish,
+            )
+            .await
+        }
     }
 }

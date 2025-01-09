@@ -8,7 +8,7 @@ use tokio::process::Command;
 mod build;
 mod python_registry;
 
-pub use build::{build, install_build_tools, SupportedProjects};
+pub use build::{build, install_build_tools, PythonVersion, SupportedProjects};
 pub use python_registry::download_package;
 
 /// Run a given command with common error handling behavior

@@ -1,7 +1,8 @@
-use std::{env, path::PathBuf, sync::LazyLock};
+use std::{env, ffi::OsStr, path::PathBuf, sync::LazyLock};
 
-use build_tools::{download_and_compile_cpython, download_wasi_sdk};
+use build_tools::download_wasi_sdk;
 use clap::ValueEnum;
+use strum::IntoEnumIterator;
 use tokio::process::Command;
 
 use crate::run;
@@ -9,8 +10,8 @@ use crate::run;
 mod build_tools;
 mod pydantic;
 
-/// Currently supported Python version
-const PYTHON_VERSION: &str = "3.12";
+pub use build_tools::PythonVersion;
+
 /// Current directory of this repository
 pub static REPO_DIR: LazyLock<PathBuf> =
     LazyLock::new(|| PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap()));
@@ -18,11 +19,6 @@ pub static REPO_DIR: LazyLock<PathBuf> =
 pub static PACKAGES_DIR: LazyLock<PathBuf> = LazyLock::new(|| REPO_DIR.join("packages"));
 /// Directory the Wasi SDK should be setup at
 static WASI_SDK: LazyLock<PathBuf> = LazyLock::new(|| REPO_DIR.join("wasi-sdk"));
-
-/// Directory Cpython should be setup at
-fn cpython_dir(python_version: &str) -> PathBuf {
-    REPO_DIR.join(format!("cpython-{python_version}"))
-}
 
 /// Downloads and prepares the WASI-SDK for use in compilation steps.
 /// Downloads and compiles a fork of Python 3.12 that can be compiled to WASI for use with componentize-py
@@ -35,7 +31,10 @@ fn cpython_dir(python_version: &str) -> PathBuf {
 pub async fn install_build_tools() -> anyhow::Result<()> {
     // Make sure WASI SDK is available
     download_wasi_sdk().await?;
-    download_and_compile_cpython(PYTHON_VERSION).await
+    for python_version in PythonVersion::iter() {
+        python_version.download_and_compile_cpython().await?;
+    }
+    Ok(())
 }
 
 /// Projects that we support builds for
@@ -54,32 +53,43 @@ pub async fn build(
     project: SupportedProjects,
     release_version: &str,
     output_dir: Option<PathBuf>,
+    python_versions: &[PythonVersion],
     publish: bool,
 ) -> anyhow::Result<()> {
-    let wheel_path = match project {
-        SupportedProjects::PydanticCore => pydantic::build(release_version, output_dir).await?,
-    };
-    if publish {
-        publish_release(project, release_version, wheel_path).await?;
+    let mut wheel_paths = vec![];
+
+    for python_version in python_versions {
+        let wheel_path = match project {
+            SupportedProjects::PydanticCore => {
+                pydantic::build(*python_version, release_version, output_dir.clone()).await?
+            }
+        };
+        wheel_paths.push(wheel_path);
     }
+
+    if publish {
+        publish_release(project, release_version, &wheel_paths).await?;
+    }
+
     Ok(())
 }
 
 async fn publish_release(
     project: SupportedProjects,
     release_version: &str,
-    wheel_path: PathBuf,
+    wheel_paths: &[PathBuf],
 ) -> anyhow::Result<()> {
     let tag = format!("{project}-{release_version}");
-    run(Command::new("gh").args([
-        "release",
-        "create",
-        &tag,
-        wheel_path.to_str().unwrap(),
-        "--title",
-        &tag,
-        "--notes",
-        &format!("Generated using `wasi-wheels build {project} {release_version} --publish`"),
-    ]))
+    let notes =
+        format!("Generated using `wasi-wheels build {project} {release_version} --publish`");
+
+    run(Command::new("gh").args(
+        [
+            "release", "create", &tag, "--title", &tag, "--notes", &notes,
+        ]
+        .into_iter()
+        .map(OsStr::new)
+        .chain(wheel_paths.iter().map(|p| p.as_os_str())),
+    ))
     .await
 }
