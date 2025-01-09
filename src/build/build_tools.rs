@@ -5,8 +5,8 @@ use tar::Archive;
 use tokio::{fs, process::Command};
 
 use crate::{
-    build::{CPYTHON, PYTHON_VERSION, WASI_SDK},
-    run, REPO_DIR,
+    build::{CPYTHON, PYTHON_VERSION, REPO_DIR, WASI_SDK},
+    run,
 };
 
 /// Downloads and prepares the WASI-SDK for use in compilation steps

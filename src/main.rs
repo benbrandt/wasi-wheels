@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
-use wasi_wheels::{build, download_sdist, install_build_tools, SupportedProjects};
+use wasi_wheels::{build, download_package, install_build_tools, SupportedProjects};
 
 #[derive(Debug, Parser)]
 #[command(version, about, long_about = None, propagate_version = true)]
@@ -17,12 +17,12 @@ enum Commands {
     /// Prepares the necessary Cpython and WASI SDK tooling for building the tools.
     InstallBuildTools,
     /// Download the sdist package for the specified project and version
-    Sdist {
+    DownloadPackage {
         /// The project (package) you want to download
         project: String,
         /// Which released version you want to download
         release_version: String,
-        /// Where to download. Defaults to "sdist" directory in current directory
+        /// Where to download. Defaults to "packages" directory in current directory
         #[arg(short, long)]
         output_dir: Option<PathBuf>,
     },
@@ -32,7 +32,7 @@ enum Commands {
         project: SupportedProjects,
         /// Which released version you want to download
         release_version: String,
-        /// Where to download. Defaults to "sdist" directory in current directory
+        /// Where to download. Defaults to "packages" directory in current directory
         #[arg(short, long)]
         output_dir: Option<PathBuf>,
         /// Optionally publish the wheel as a release in GitHub
@@ -47,11 +47,11 @@ async fn main() -> anyhow::Result<()> {
 
     match cli.command {
         Commands::InstallBuildTools => install_build_tools().await,
-        Commands::Sdist {
+        Commands::DownloadPackage {
             project,
             release_version,
             output_dir,
-        } => download_sdist(&project, &release_version, output_dir).await,
+        } => download_package(&project, &release_version, output_dir).await,
         Commands::Build {
             project,
             release_version,

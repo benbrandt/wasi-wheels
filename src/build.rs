@@ -14,6 +14,8 @@ const PYTHON_VERSION: &str = "3.12";
 /// Current directory of this repository
 pub static REPO_DIR: LazyLock<PathBuf> =
     LazyLock::new(|| PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap()));
+/// Directory for storing package sdist folders
+pub static PACKAGES_DIR: LazyLock<PathBuf> = LazyLock::new(|| REPO_DIR.join("packages"));
 /// Directory the Wasi SDK should be setup at
 static WASI_SDK: LazyLock<PathBuf> = LazyLock::new(|| REPO_DIR.join("wasi-sdk"));
 /// Directory Cpython should be setup at

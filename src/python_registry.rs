@@ -9,18 +9,18 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use tar::Archive;
 
-use crate::REPO_DIR;
+use crate::build::PACKAGES_DIR;
 
 /// Download the sdist package for the specified project and version
 ///
 /// # Errors
 /// Will error if the project or version cannot be found or unpacked.
-pub async fn download_sdist(
+pub async fn download_package(
     project: &str,
     release_version: &str,
     output_dir: Option<PathBuf>,
 ) -> anyhow::Result<()> {
-    let output_dir = output_dir.unwrap_or_else(|| REPO_DIR.join("sdist"));
+    let output_dir = output_dir.unwrap_or_else(|| PACKAGES_DIR.clone());
 
     if output_dir
         .join(format!("{project}-{release_version}"))

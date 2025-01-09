@@ -2,15 +2,15 @@ use std::path::PathBuf;
 
 use tokio::{fs, process::Command};
 
-use crate::{download_sdist, run, REPO_DIR};
+use crate::{download_package, run};
 
-use super::{CPYTHON, PYTHON_VERSION, WASI_SDK};
+use super::{CPYTHON, PACKAGES_DIR, PYTHON_VERSION, WASI_SDK};
 
 /// Builds Pydantic and returns the wheel path for publishing
 pub async fn build(version: &str, output_dir: Option<PathBuf>) -> anyhow::Result<PathBuf> {
-    let output_dir = output_dir.unwrap_or_else(|| REPO_DIR.join("sdist"));
+    let output_dir = output_dir.unwrap_or_else(|| PACKAGES_DIR.clone());
     let package_dir = output_dir.join(format!("pydantic_core-{version}"));
-    download_sdist("pydantic-core", version, Some(output_dir)).await?;
+    download_package("pydantic-core", version, Some(output_dir)).await?;
 
     if !package_dir.join(".venv").exists() {
         run(Command::new(format!("python{PYTHON_VERSION}"))
@@ -66,21 +66,4 @@ pub async fn build(version: &str, output_dir: Option<PathBuf>) -> anyhow::Result
     }
 
     Ok(wheel)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn can_build_pydantic() -> anyhow::Result<()> {
-        let version = "2.27.2";
-        build(version, None).await?;
-        assert!(REPO_DIR
-            .join(format!(
-                "sdist/pydantic_core-{version}/dist/pydantic_core-{version}-cp312-cp312-any.whl"
-            ))
-            .exists());
-        Ok(())
-    }
 }

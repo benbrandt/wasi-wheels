@@ -20,4 +20,4 @@ target/
 
 wasi-sdk*
 cpython*
-sdist/*
+packages/*

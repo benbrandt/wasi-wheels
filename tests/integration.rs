@@ -18,12 +18,12 @@ fn install_build_tools() -> anyhow::Result<()> {
 }
 
 #[test]
-fn download_sdist() -> anyhow::Result<()> {
+fn download_package() -> anyhow::Result<()> {
     let temp_dir = tempdir()?;
 
     let assert = Command::cargo_bin("wasi-wheels")?
         .args([
-            "sdist",
+            "download-package",
             "pydantic-core",
             "2.27.2",
             "-o",
@@ -46,7 +46,7 @@ fn build_pydantic() -> anyhow::Result<()> {
 
     assert.success();
 
-    assert!(std::fs::read_dir("sdist/pydantic_core-2.27.2/dist")?.count() > 0);
+    assert!(std::fs::read_dir("packages/pydantic_core-2.27.2/dist")?.count() > 0);
 
     Ok(())
 }
