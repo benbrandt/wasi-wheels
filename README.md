@@ -8,8 +8,23 @@ Right now this tooling can:
 
 - Setup the necessary build tooling
 - Download an sdist build for a given project and version
-- IN PROGRESS: build wheels for pydantic
-- TODO: Upload wheels to GitHub
+- Build wheels for pydantic
+- Upload wheels to GitHub
+- TODO: Have a registry for installation
+
+## Use a wheel
+
+If you want to use a wheel for use with componentize-py, you can run the following:
+
+```sh
+pip3 install --target wasi_deps --only-binary :all:  --platform any --python-version "3.12" https://github.com/benbrandt/wasi-wheels/releases/download/pydantic-core-2.27.2/pydantic_core-2.27.2-cp312-cp312-any.whl
+```
+
+Then you can run your componentize-py build like so:
+
+```sh
+componentize-py -w world componentize skill_module -o output_file -p . -p wasi_deps
+```
 
 ## Setup
 
@@ -26,3 +41,5 @@ This will setup the latest version of [WASI SDK](https://github.com/WebAssembly/
 It will also install and compile a [fork of Cpython](https://github.com/benbrandt/cpython/tree/3.12-wasi) that can be compiled for WASI targets with socket and dynamic linking support.
 
 This is important, because the target of these wheels is [componentize-py](https://github.com/bytecodealliance/componentize-py) which expects support for both of these.
+
+## Building a wheel
