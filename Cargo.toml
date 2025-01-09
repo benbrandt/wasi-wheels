@@ -30,7 +30,7 @@ serde_json = "1.0.135"
 sha2 = "0.10.8"
 strum = { version = "0.26.3", features = ["derive"] }
 tar = "0.4.43"
-tokio = { version = "1.42.0", features = ["full"] }
+tokio = { version = "1.43.0", features = ["full"] }
 
 [lints.rust]
 future_incompatible = { level = "warn", priority = -1 }
@@ -49,4 +49,4 @@ pedantic = "warn"
 [dev-dependencies]
 assert_cmd = "2.0.16"
 tempfile = "3.15.0"
-tokio = { version = "1.42.0", features = ["test-util"] }
+tokio = { version = "1.43.0", features = ["test-util"] }
