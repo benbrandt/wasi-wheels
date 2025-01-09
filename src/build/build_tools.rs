@@ -5,7 +5,7 @@ use tar::Archive;
 use tokio::{fs, process::Command};
 
 use crate::{
-    build::{CPYTHON, PYTHON_VERSION, REPO_DIR, WASI_SDK},
+    build::{cpython_dir, PYTHON_VERSION, REPO_DIR, WASI_SDK},
     run,
 };
 
@@ -59,18 +59,19 @@ pub async fn download_wasi_sdk() -> anyhow::Result<()> {
 ///
 /// # Panics
 /// If certain paths are invalid because of failed download
-pub async fn download_and_compile_cpython() -> anyhow::Result<()> {
+pub async fn download_and_compile_cpython(python_version: &str) -> anyhow::Result<()> {
     #[cfg(any(target_os = "macos", target_os = "windows"))]
     const PYTHON_EXECUTABLE: &str = "python.exe";
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     const PYTHON_EXECUTABLE: &str = "python";
     const GITHUB_USER: &str = "benbrandt";
     const GITHUB_REPO: &str = "cpython";
-    const GITHUB_BRANCH: &str = "3.12-wasi";
+    let github_branch = format!("{python_version}-wasi");
+    let cpython = cpython_dir(python_version);
 
-    if !CPYTHON.exists() {
+    if !cpython.exists() {
         let bytes = reqwest::get(
-            format!("https://github.com/{GITHUB_USER}/{GITHUB_REPO}/archive/refs/heads/{GITHUB_BRANCH}.tar.gz"),
+            format!("https://github.com/{GITHUB_USER}/{GITHUB_REPO}/archive/refs/heads/{github_branch}.tar.gz"),
         )
             .await?
             .error_for_status()?
@@ -80,11 +81,11 @@ pub async fn download_and_compile_cpython() -> anyhow::Result<()> {
             Archive::new(GzDecoder::new(&bytes[..])).unpack(REPO_DIR.as_path())
         })
         .await??;
-        fs::rename(format!("{GITHUB_REPO}-{GITHUB_BRANCH}"), &*CPYTHON).await?;
+        fs::rename(format!("{GITHUB_REPO}-{github_branch}"), &cpython).await?;
     }
 
-    let cpython_wasi_dir = CPYTHON.join("builddir/wasi");
-    let cpython_native_dir = CPYTHON.join("builddir/build");
+    let cpython_wasi_dir = cpython.join("builddir/wasi");
+    let cpython_native_dir = cpython.join("builddir/build");
     if !cpython_wasi_dir
         .join(format!("libpython{PYTHON_VERSION}.so"))
         .exists()

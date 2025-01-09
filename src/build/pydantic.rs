@@ -4,13 +4,14 @@ use tokio::{fs, process::Command};
 
 use crate::{download_package, run};
 
-use super::{CPYTHON, PACKAGES_DIR, PYTHON_VERSION, WASI_SDK};
+use super::{cpython_dir, PACKAGES_DIR, PYTHON_VERSION, WASI_SDK};
 
 /// Builds Pydantic and returns the wheel path for publishing
 pub async fn build(version: &str, output_dir: Option<PathBuf>) -> anyhow::Result<PathBuf> {
     let output_dir = output_dir.unwrap_or_else(|| PACKAGES_DIR.clone());
     let package_dir = output_dir.join(format!("pydantic_core-{version}"));
     download_package("pydantic-core", version, Some(output_dir)).await?;
+    let cpython = cpython_dir(PYTHON_VERSION);
 
     if !package_dir.join(".venv").exists() {
         run(Command::new(format!("python{PYTHON_VERSION}"))
@@ -24,7 +25,7 @@ pub async fn build(version: &str, output_dir: Option<PathBuf>) -> anyhow::Result
         py_version = PYTHON_VERSION.replace('.', "")
     ));
     if !wheel.exists() {
-        let cpython_wasi_dir = CPYTHON.join("builddir/wasi");
+        let cpython_wasi_dir = cpython.join("builddir/wasi");
         let cross_prefix = cpython_wasi_dir.join("install");
         let lib_wasi = cpython_wasi_dir.join(format!("build/lib.wasi-wasm32-{PYTHON_VERSION}"));
         let cc = WASI_SDK.join("bin/clang");

@@ -18,8 +18,11 @@ pub static REPO_DIR: LazyLock<PathBuf> =
 pub static PACKAGES_DIR: LazyLock<PathBuf> = LazyLock::new(|| REPO_DIR.join("packages"));
 /// Directory the Wasi SDK should be setup at
 static WASI_SDK: LazyLock<PathBuf> = LazyLock::new(|| REPO_DIR.join("wasi-sdk"));
+
 /// Directory Cpython should be setup at
-static CPYTHON: LazyLock<PathBuf> = LazyLock::new(|| REPO_DIR.join("cpython"));
+fn cpython_dir(python_version: &str) -> PathBuf {
+    REPO_DIR.join(format!("cpython-{python_version}"))
+}
 
 /// Downloads and prepares the WASI-SDK for use in compilation steps.
 /// Downloads and compiles a fork of Python 3.12 that can be compiled to WASI for use with componentize-py
@@ -32,7 +35,7 @@ static CPYTHON: LazyLock<PathBuf> = LazyLock::new(|| REPO_DIR.join("cpython"));
 pub async fn install_build_tools() -> anyhow::Result<()> {
     // Make sure WASI SDK is available
     download_wasi_sdk().await?;
-    download_and_compile_cpython().await
+    download_and_compile_cpython(PYTHON_VERSION).await
 }
 
 /// Projects that we support builds for
