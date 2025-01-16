@@ -16,8 +16,6 @@ pub async fn build(
     let package_dir = output_dir.join(format!("pydantic_core-{version}"));
     download_package("pydantic-core", version, Some(output_dir)).await?;
 
-    let cpython = python_version.cpython_dir();
-
     if package_dir.join(".venv").exists() {
         fs::remove_dir_all(package_dir.join(".venv")).await?;
     }
@@ -32,9 +30,7 @@ pub async fn build(
         py_version = python_version.to_string().replace('.', "")
     ));
     if !wheel.exists() {
-        let cpython_wasi_dir = cpython.join("builddir/wasi");
-        let cross_prefix = cpython_wasi_dir.join("install");
-        let lib_wasi = cpython_wasi_dir.join(format!("build/lib.wasi-wasm32-{python_version}"));
+        let cross_prefix = python_version.cross_prefix();
         let cc = WASI_SDK.join("bin/clang");
         let rust_target = "wasm32-wasip1";
 
@@ -57,15 +53,15 @@ maturin build --release --target wasm32-wasip1 --out dist -i python{python_versi
             .current_dir(&package_dir)
             .env("CROSS_PREFIX", &cross_prefix)
             .env("WASI_SDK_PATH", &*WASI_SDK)
-            .env("PYO3_CROSS_LIB_DIR", &lib_wasi)
-            .env("SYSCONFIG", lib_wasi)
+            .env("PYO3_CROSS_LIB_DIR", python_version.cross_lib_dir())
+            .env("SYSCONFIG", python_version.cross_lib_dir())
             .env("CC", &cc)
             .env("CXX", WASI_SDK.join("bin/clang++"))
             .env(
                 "PYTHONPATH",
                 cross_prefix.join(format!("lib/python{python_version}")),
             )
-            .env("RUSTFLAGS",  format!("-C link-args=-L{wasi_sdk}/share/wasi-sysroot/lib/wasm32-wasi/ -C linker={wasi_sdk}/bin/wasm-ld -C link-self-contained=no -C link-args=--experimental-pic -C link-args=--shared -C relocation-model=pic -C linker-plugin-lto=yes", wasi_sdk = WASI_SDK.to_str().unwrap()))
+            .env("RUSTFLAGS",  format!("-C link-args=-L{wasi_sdk}/share/wasi-sysroot/lib/wasm32-wasip2/ -C linker={wasi_sdk}/bin/wasm-ld -C link-self-contained=no -C link-args=--experimental-pic -C link-args=--shared -C relocation-model=pic -C linker-plugin-lto=yes", wasi_sdk = WASI_SDK.to_str().unwrap()))
             .env("CFLAGS", format!("-I{}/include/python{python_version} -D__EMSCRIPTEN__=1", cross_prefix.to_str().unwrap()))
             .env("CXXFLAGS", format!("-I{}/include/python{python_version}", cross_prefix.to_str().unwrap()))
             .env("LDSHARED", cc)
