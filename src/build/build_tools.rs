@@ -127,8 +127,8 @@ impl PythonVersion {
                         cpython_native_dir.to_str().unwrap()
                     ),
                     &format!("--prefix={}/install", cpython_wasi_dir.to_str().unwrap()),
-                    // "--enable-wasm-dynamic-linking",
-                    // "--enable-ipv6",
+                    "--enable-wasm-dynamic-linking",
+                    "--enable-ipv6",
                     "--disable-test-modules",
                 ]))
             .await?;
@@ -179,7 +179,10 @@ pub async fn download_wasi_sdk() -> anyhow::Result<()> {
         for dir in ["include", "lib", "share"] {
             let dir = sysroot_path.join(dir);
             fs::rename(dir.join("wasm32-wasi"), dir.join("wasm32-wasi-bk")).await?;
-            fs::rename(dir.join("wasm32-wasip2"), dir.join("wasm32-wasi")).await?;
+            run(Command::new("cp")
+                .args(["-r", "wasm32-wasip2", "wasm32-wasi"])
+                .current_dir(dir))
+            .await?;
         }
     }
 
