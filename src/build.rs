@@ -79,9 +79,8 @@ async fn publish_release(
     release_version: &str,
     wheel_paths: &[PathBuf],
 ) -> anyhow::Result<()> {
-    let tag = format!("{project}-{release_version}");
-    let notes =
-        format!("Generated using `wasi-wheels build {project} {release_version} --publish`");
+    let tag = format!("{project}/v{release_version}");
+    let notes = format!("Generated using `wasi-wheels build {project} {release_version}`");
 
     run(Command::new("gh").args(
         [
