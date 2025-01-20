@@ -28,6 +28,8 @@ on:
         type: boolean
         description: "Publish the output to a GitHub release"
 
+run-name: Build ${{ inputs.project }} ${{ inputs.version }} by @${{ github.actor }}
+
 env:
   CARGO_TERM_COLOR: always
 
