@@ -40,18 +40,23 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: |
-            3.12
-            3.13
+            3.12.8
+            3.13.1
       - uses: actions/cache@v4
         id: cache-cpython-wasi
         with:
-          path: cpython-3**
-          key: cpython-wasi-3.12-3.13
+          path: cpython-3.12.8
+          key: cpython-wasi-3.12.8
+      - uses: actions/cache@v4
+        id: cache-cpython-wasi
+        with:
+          path: cpython-3.13.1
+          key: cpython-wasi-3.13.1
       - uses: actions/cache@v4
         id: cache-wasi-sdk
         with:
           path: wasi-sdk
-          key: wasi-sdk-25.0
+          key: wasi-sdk-25.0.0
 
       - run: cargo run -- install-build-tools
       - run: cargo test --workspace --all-features

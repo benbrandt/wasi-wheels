@@ -56,13 +56,18 @@ jobs:
       - uses: actions/cache@v4
         id: cache-cpython-wasi
         with:
-          path: cpython-3**
-          key: cpython-wasi-3.12-3.13
+          path: cpython-3.12.8
+          key: cpython-wasi-3.12.8
+      - uses: actions/cache@v4
+        id: cache-cpython-wasi
+        with:
+          path: cpython-3.13.1
+          key: cpython-wasi-3.13.1
       - uses: actions/cache@v4
         id: cache-wasi-sdk
         with:
           path: wasi-sdk
-          key: wasi-sdk-25.0
+          key: wasi-sdk-25.0.0
 
       - run: cargo run -- install-build-tools
       - run: cargo run -- build ${{ inputs.project }} ${{ inputs.version }} ${{ inputs.python_3_12 && '--python-versions py3-12' || '' }} ${{ inputs.python_3_13 && '--python-versions py3-13' || '' }} ${{ inputs.publish && '--publish' || '' }}
