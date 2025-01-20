@@ -12,6 +12,7 @@ pub async fn build(
     version: &str,
     output_dir: Option<PathBuf>,
 ) -> anyhow::Result<PathBuf> {
+    const PLATFORM_TAG: &str = "wasi_0_0_0_wasm32";
     let output_dir = output_dir.unwrap_or_else(|| PACKAGES_DIR.clone());
     let package_dir = output_dir.join(format!("pydantic_core-{version}"));
     download_package("pydantic-core", version, Some(output_dir)).await?;
@@ -30,17 +31,17 @@ pub async fn build(
         .await?;
     }
 
-    run(Command::new("pip")
-        .args(["install", "typing-extensions", "maturin", "--upgrade"])
-        // Make it possible to not have to activate the venv
-        .env("PATH", &path))
-    .await?;
-
     let wheel = package_dir.join(format!(
-        "dist/pydantic_core-{version}-cp{py_version}-cp{py_version}-any.whl",
+        "dist/pydantic_core-{version}-cp{py_version}-cp{py_version}-{PLATFORM_TAG}.whl",
         py_version = python_version.to_string().replace('.', "")
     ));
     if !wheel.exists() {
+        run(Command::new("pip")
+            .args(["install", "typing-extensions", "maturin", "--upgrade"])
+            // Make it possible to not have to activate the venv
+            .env("PATH", &path))
+        .await?;
+
         let cross_prefix = python_version.cross_prefix();
         let cc = WASI_SDK.join("bin/clang");
         let rust_target = "wasm32-wasip1";
@@ -78,6 +79,25 @@ pub async fn build(
             .env("_PYTHON_SYSCONFIGDATA_NAME", "_sysconfigdata__wasi_wasm32-wasi")
             .env("CARGO_BUILD_TARGET", rust_target)
         )
+        .await?;
+
+        // Rewrite the wheel to the correct target
+        run(Command::new("pip")
+            .args(["install", "wheel", "--upgrade"])
+            // Make it possible to not have to activate the venv
+            .env("PATH", &path))
+        .await?;
+        run(Command::new("wheel")
+            .args([
+                "tags",
+                "--platform-tag",
+                PLATFORM_TAG,
+                "--remove",
+                // Maturin outputs a wheel with `any` platform tag
+                &wheel.to_str().unwrap().replace(PLATFORM_TAG, "any"),
+            ])
+            // Make it possible to not have to activate the venv
+            .env("PATH", &path))
         .await?;
     }
 
