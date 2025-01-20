@@ -34,6 +34,11 @@ jobs:
           python-version: |
             3.12
             3.13
+      - uses: actions/cache@v4
+        id: cache-cpython-wasi
+        with:
+          path: cpython-3**
+          key: cpython-wasi-3.12-3.13
 
       - run: cargo run -- install-build-tools
       - run: cargo test --workspace --all-features
