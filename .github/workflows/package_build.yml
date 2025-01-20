@@ -1,0 +1,53 @@
+on:
+  workflow_dispatch:
+    inputs:
+      project:
+        required: true
+        description: "Which Python project from PyPI to build"
+        type: choice
+        options:
+          - pydantic-core
+      version:
+        required: true
+        description: "Which version of the project to build"
+      python_3_12:
+        required: false
+        type: boolean
+        default: true
+        description: "Build for Python 3.12"
+      python_3_13:
+        required: false
+        type: boolean
+        default: true
+        description: "Build for Python 3.13"
+      publish:
+        required: true
+        default: false
+        type: boolean
+        description: "Whether or not to publish the output to a GitHub release."
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip1
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: |
+            3.12
+            3.13
+      - uses: actions/cache@v4
+        id: cache-cpython-wasi
+        with:
+          path: cpython-3**
+          key: cpython-wasi-3.12-3.13
+
+      - run: cargo run -- install-build-tools
+      - run: cargo run -- build ${{ inputs.project }} ${{ inputs.version }} ${{ inputs.python_3_12 && '--python-versions py3-12' }} ${{ inputs.python_3_13 && '--python-versions py3-13' }} ${{ inputs.publish && '--publish' }}
