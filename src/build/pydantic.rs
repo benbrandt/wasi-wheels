@@ -1,6 +1,6 @@
-use std::path::PathBuf;
+use std::{env, path::PathBuf};
 
-use tokio::{fs, process::Command};
+use tokio::process::Command;
 
 use crate::{build::build_tools::PythonVersion, download_package, run};
 
@@ -16,13 +16,24 @@ pub async fn build(
     let package_dir = output_dir.join(format!("pydantic_core-{version}"));
     download_package("pydantic-core", version, Some(output_dir)).await?;
 
-    if package_dir.join(".venv").exists() {
-        fs::remove_dir_all(package_dir.join(".venv")).await?;
+    let venv_dir = package_dir.join(format!(".venv-{python_version}"));
+    let path = format!(
+        "{}:{}",
+        venv_dir.join("bin").to_str().unwrap(),
+        env::var("PATH").unwrap_or_default()
+    );
+
+    if !venv_dir.exists() {
+        run(Command::new(format!("python{python_version}"))
+            .args(["-m", "venv", venv_dir.to_str().unwrap()])
+            .current_dir(&package_dir))
+        .await?;
     }
 
-    run(Command::new(format!("python{python_version}"))
-        .args(["-m", "venv", ".venv"])
-        .current_dir(&package_dir))
+    run(Command::new("pip")
+        .args(["install", "typing-extensions", "maturin", "--upgrade"])
+        // Make it possible to not have to activate the venv
+        .env("PATH", &path))
     .await?;
 
     let wheel = package_dir.join(format!(
@@ -34,23 +45,19 @@ pub async fn build(
         let cc = WASI_SDK.join("bin/clang");
         let rust_target = "wasm32-wasip1";
 
-        let tempdir = tempfile::tempdir()?;
-        let script_path = tempdir.path().join("run_build.sh");
-        fs::write(
-            &script_path,
-            format!(
-                "#!/bin/bash
-set -eou pipefail
-. .venv/bin/activate
-pip install typing-extensions maturin
-maturin build --release --target wasm32-wasip1 --out dist -i python{python_version}"
-            ),
-        )
-        .await?;
-
-        run(Command::new("bash")
-            .arg(script_path)
+        run(Command::new("maturin").args([
+            "build",
+            "--release",
+            "--target",
+            rust_target,
+            "--out",
+            "dist",
+            "-i",
+            &format!("python{python_version}"),
+        ])
             .current_dir(&package_dir)
+            // Make it possible to not have to activate the venv
+            .env("PATH", &path)
             .env("CROSS_PREFIX", &cross_prefix)
             .env("WASI_SDK_PATH", &*WASI_SDK)
             .env("PYO3_CROSS_LIB_DIR", python_version.cross_lib_dir())
@@ -70,7 +77,8 @@ maturin build --release --target wasm32-wasip1 --out dist -i python{python_versi
             .env("LDFLAGS", "-shared")
             .env("_PYTHON_SYSCONFIGDATA_NAME", "_sysconfigdata__wasi_wasm32-wasi")
             .env("CARGO_BUILD_TARGET", rust_target)
-        ).await?;
+        )
+        .await?;
     }
 
     Ok(wheel)
