@@ -13,6 +13,7 @@ pub async fn build(
     output_dir: Option<PathBuf>,
 ) -> anyhow::Result<PathBuf> {
     const PLATFORM_TAG: &str = "wasi_0_0_0_wasm32";
+    const RUST_TARGET: &str = "wasm32-wasip1";
     let output_dir = output_dir.unwrap_or_else(|| PACKAGES_DIR.clone());
     let package_dir = output_dir.join(format!("pydantic_core-{version}"));
     download_package("pydantic-core", version, Some(output_dir)).await?;
@@ -44,13 +45,12 @@ pub async fn build(
 
         let cross_prefix = python_version.cross_prefix();
         let cc = WASI_SDK.join("bin/clang");
-        let rust_target = "wasm32-wasip1";
 
         run(Command::new("maturin").args([
             "build",
             "--release",
             "--target",
-            rust_target,
+            RUST_TARGET,
             "--out",
             "dist",
             "-i",
@@ -77,7 +77,7 @@ pub async fn build(
             .env("RANLIB", "true")
             .env("LDFLAGS", "-shared")
             .env("_PYTHON_SYSCONFIGDATA_NAME", "_sysconfigdata__wasi_wasm32-wasi")
-            .env("CARGO_BUILD_TARGET", rust_target)
+            .env("CARGO_BUILD_TARGET", RUST_TARGET)
         )
         .await?;
 
