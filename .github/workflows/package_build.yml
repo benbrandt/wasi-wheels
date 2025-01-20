@@ -1,15 +1,17 @@
+name: Build and Publish
+
 on:
   workflow_dispatch:
     inputs:
       project:
         required: true
-        description: "Which Python project from PyPI to build"
+        description: "PyPI project to build"
         type: choice
         options:
           - pydantic-core
       version:
         required: true
-        description: "Which version of the project to build"
+        description: "Project Version"
       python_3_12:
         required: false
         type: boolean
@@ -24,7 +26,7 @@ on:
         required: true
         default: false
         type: boolean
-        description: "Whether or not to publish the output to a GitHub release."
+        description: "Publish the output to a GitHub release"
 
 env:
   CARGO_TERM_COLOR: always
