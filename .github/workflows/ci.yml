@@ -43,12 +43,12 @@ jobs:
             3.12.8
             3.13.1
       - uses: actions/cache@v4
-        id: cache-cpython-wasi
+        id: cache-cpython-3.12.8-wasi
         with:
           path: cpython-3.12.8
           key: cpython-wasi-3.12.8
       - uses: actions/cache@v4
-        id: cache-cpython-wasi
+        id: cache-cpython-3.13.1-wasi
         with:
           path: cpython-3.13.1
           key: cpython-wasi-3.13.1
