@@ -57,4 +57,4 @@ jobs:
           key: wasi-sdk-25.0
 
       - run: cargo run -- install-build-tools
-      - run: cargo run -- build ${{ inputs.project }} ${{ inputs.version }} ${{ inputs.python_3_12 && '--python-versions py3-12' }} ${{ inputs.python_3_13 && '--python-versions py3-13' }} ${{ inputs.publish && '--publish' }}
+      - run: cargo run -- build ${{ inputs.project }} ${{ inputs.version }} ${{ inputs.python_3_12 && '--python-versions py3-12' || '' }} ${{ inputs.python_3_13 && '--python-versions py3-13' || '' }} ${{ inputs.publish && '--publish' || '' }}
