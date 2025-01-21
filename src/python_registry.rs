@@ -107,7 +107,9 @@ struct ProjectFile {
 impl ProjectFile {
     /// Download and validate the resulting file
     async fn download(&self) -> anyhow::Result<Bytes> {
-        let bytes = Client::new()
+        let bytes = Client::builder()
+            .use_rustls_tls()
+            .build()?
             .get(&self.url)
             .send()
             .await?

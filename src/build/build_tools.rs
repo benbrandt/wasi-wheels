@@ -2,6 +2,7 @@ use std::{env, path::PathBuf};
 
 use clap::ValueEnum;
 use flate2::bufread::GzDecoder;
+use reqwest::{Client, IntoUrl};
 use strum::EnumIter;
 use tar::Archive;
 use tokio::{fs, process::Command};
@@ -102,14 +103,11 @@ impl PythonVersion {
         let cpython = self.cpython_dir();
 
         if !cpython.exists() {
-            let bytes = reqwest::get(format!(
+            let bytes = get_bytes(format!(
                 "https://github.com/{}/{}/archive/refs/heads/{github_branch}.tar.gz",
                 Self::GITHUB_USER,
                 Self::GITHUB_REPO
             ))
-            .await?
-            .error_for_status()?
-            .bytes()
             .await?;
             tokio::task::spawn_blocking(move || {
                 Archive::new(GzDecoder::new(&bytes[..])).unpack(REPO_DIR.as_path())
@@ -187,14 +185,11 @@ impl PythonVersion {
         let cpython = self.cpython_dir();
 
         if !cpython.exists() {
-            let bytes = reqwest::get(format!(
+            let bytes = get_bytes(format!(
                 "https://github.com/{}/{}/archive/refs/heads/{github_branch}.tar.gz",
                 Self::GITHUB_USER,
                 Self::GITHUB_REPO
             ))
-            .await?
-            .error_for_status()?
-            .bytes()
             .await?;
             tokio::task::spawn_blocking(move || {
                 Archive::new(GzDecoder::new(&bytes[..])).unpack(REPO_DIR.as_path())
@@ -260,6 +255,19 @@ impl PythonVersion {
     }
 }
 
+async fn get_bytes(url: impl IntoUrl) -> anyhow::Result<bytes::Bytes> {
+    let bytes = Client::builder()
+        .use_rustls_tls()
+        .build()?
+        .get(url)
+        .send()
+        .await?
+        .error_for_status()?
+        .bytes()
+        .await?;
+    Ok(bytes)
+}
+
 /// Downloads and prepares the WASI-SDK for use in compilation steps
 ///
 /// # Errors
@@ -279,11 +287,7 @@ pub async fn download_wasi_sdk() -> anyhow::Result<()> {
         };
 
         let download_dir = format!("wasi-sdk-{WASI_SDK_VERSION}-{arch}-{os}");
-        let bytes = reqwest::get(format!("https://github.com/WebAssembly/wasi-sdk/releases/download/{WASI_SDK_RELEASE}/{download_dir}.tar.gz"))
-            .await?
-            .error_for_status()?
-            .bytes()
-            .await?;
+        let bytes = get_bytes(format!("https://github.com/WebAssembly/wasi-sdk/releases/download/{WASI_SDK_RELEASE}/{download_dir}.tar.gz")).await?;
 
         tokio::task::spawn_blocking(move || {
             Archive::new(GzDecoder::new(&bytes[..])).unpack(REPO_DIR.as_path())
