@@ -8,7 +8,7 @@ use tokio::process::Command;
 mod build;
 mod index;
 
-pub use build::{build, install_build_tools, PythonVersion, SupportedProjects};
+pub use build::{build_and_publish, install_build_tools, PythonVersion, SupportedProjects};
 pub use index::download_package;
 
 /// Run a given command with common error handling behavior
