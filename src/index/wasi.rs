@@ -1,3 +1,5 @@
+//! Generate a custom index for WASI wheels.
+
 #[cfg(test)]
 mod tests {
     #[tokio::test]

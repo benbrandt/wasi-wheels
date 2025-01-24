@@ -9,6 +9,8 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use tar::Archive;
 
+mod wasi;
+
 use crate::build::PACKAGES_DIR;
 
 /// Download the sdist package for the specified project and version

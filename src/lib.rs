@@ -6,11 +6,10 @@ use anyhow::{bail, Context};
 use tokio::process::Command;
 
 mod build;
-mod github;
-mod python_registry;
+mod index;
 
 pub use build::{build, install_build_tools, PythonVersion, SupportedProjects};
-pub use python_registry::download_package;
+pub use index::download_package;
 
 /// Run a given command with common error handling behavior
 ///
