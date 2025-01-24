@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
-use wasi_wheels::{build, download_package, install_build_tools, PythonVersion, SupportedProjects};
+use wasi_wheels::{build_and_publish, download_package, install_build_tools, PythonVersion, SupportedProjects};
 
 #[derive(Debug, Parser)]
 #[command(version, about, long_about = None, propagate_version = true)]
@@ -62,7 +62,7 @@ async fn main() -> anyhow::Result<()> {
             publish,
             python_versions,
         } => {
-            build(
+            build_and_publish(
                 project,
                 &release_version,
                 output_dir,

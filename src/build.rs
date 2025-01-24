@@ -1,9 +1,10 @@
-use std::{env, ffi::OsStr, path::PathBuf, sync::LazyLock};
+use std::{env, ffi::OsStr, iter::once, path::PathBuf, sync::LazyLock};
 
 use build_tools::download_wasi_sdk;
 use clap::ValueEnum;
+use sha2::{Digest, Sha256};
 use strum::IntoEnumIterator;
-use tokio::process::Command;
+use tokio::{fs, process::Command};
 
 use crate::run;
 
@@ -49,13 +50,28 @@ pub enum SupportedProjects {
 ///
 /// # Errors
 /// If the build fails.
-pub async fn build(
+pub async fn build_and_publish(
     project: SupportedProjects,
     release_version: &str,
     output_dir: Option<PathBuf>,
     python_versions: &[PythonVersion],
     publish: bool,
 ) -> anyhow::Result<()> {
+    let wheel_paths = build(project, release_version, output_dir, python_versions).await?;
+
+    if publish {
+        publish_release(project, release_version, &wheel_paths).await?;
+    }
+
+    Ok(())
+}
+
+pub async fn build(
+    project: SupportedProjects,
+    release_version: &str,
+    output_dir: Option<PathBuf>,
+    python_versions: &[PythonVersion],
+) -> anyhow::Result<Vec<PathBuf>> {
     let mut wheel_paths = vec![];
 
     for python_version in python_versions {
@@ -67,11 +83,7 @@ pub async fn build(
         wheel_paths.push(wheel_path);
     }
 
-    if publish {
-        publish_release(project, release_version, &wheel_paths).await?;
-    }
-
-    Ok(())
+    Ok(wheel_paths)
 }
 
 async fn publish_release(
@@ -82,13 +94,55 @@ async fn publish_release(
     let tag = format!("{project}/v{release_version}");
     let notes = format!("Generated using `wasi-wheels build {project} {release_version}`");
 
+    let hashes = generate_hashes(wheel_paths).await?;
+    let temp_dir = tempfile::tempdir()?;
+    let hashes_path = temp_dir.path().join("hashes.txt");
+    fs::write(&hashes_path, hashes).await?;
+
     run(Command::new("gh").args(
         [
             "release", "create", &tag, "--title", &tag, "--notes", &notes,
         ]
         .into_iter()
         .map(OsStr::new)
-        .chain(wheel_paths.iter().map(|p| p.as_os_str())),
+        .chain(wheel_paths.iter().map(|p| p.as_os_str()))
+        .chain(once(hashes_path.as_os_str())),
     ))
     .await
+}
+
+async fn generate_hashes(wheel_paths: &[PathBuf]) -> anyhow::Result<String> {
+    let mut hashes = String::new();
+    for wheel_path in wheel_paths {
+        let content = fs::read(wheel_path).await?;
+        let hash = format!("{:x}", Sha256::digest(&content));
+        let filename = wheel_path.file_name().unwrap().to_string_lossy();
+        hashes.push_str(&format!("{filename}\t{hash}\n"));
+    }
+
+    Ok(hashes)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_project_display() -> anyhow::Result<()> {
+        let wheel_paths = build(
+            SupportedProjects::PydanticCore,
+            "2.27.2",
+            None,
+            &[PythonVersion::Py3_12],
+        )
+        .await?;
+
+        let hashes = generate_hashes(&wheel_paths).await?;
+
+        for path in wheel_paths {
+            assert!(hashes.contains(path.file_name().unwrap().to_str().unwrap()));
+        }
+
+        Ok(())
+    }
 }
