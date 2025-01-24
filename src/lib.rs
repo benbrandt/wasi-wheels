@@ -6,6 +6,7 @@ use anyhow::{bail, Context};
 use tokio::process::Command;
 
 mod build;
+mod github;
 mod python_registry;
 
 pub use build::{build, install_build_tools, PythonVersion, SupportedProjects};
