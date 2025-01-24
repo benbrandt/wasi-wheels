@@ -3,7 +3,9 @@
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
-use wasi_wheels::{build_and_publish, download_package, install_build_tools, PythonVersion, SupportedProjects};
+use wasi_wheels::{
+    build_and_publish, download_package, install_build_tools, PythonVersion, SupportedProjects,
+};
 
 #[derive(Debug, Parser)]
 #[command(version, about, long_about = None, propagate_version = true)]
