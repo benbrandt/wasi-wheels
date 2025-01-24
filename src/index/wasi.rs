@@ -5,7 +5,14 @@ mod tests {
     use std::collections::HashSet;
 
     use futures_util::TryStreamExt;
+    use rinja::Template;
     use tokio::pin;
+
+    #[derive(Template)]
+    #[template(path = "index.html")]
+    struct IndexTemplate {
+        packages: HashSet<String>,
+    }
 
     #[tokio::test]
     async fn get_releases() -> anyhow::Result<()> {
@@ -28,7 +35,14 @@ mod tests {
             packages.insert(package.to_owned());
         }
 
-        dbg!(packages);
+        let index = IndexTemplate {
+            packages: packages.clone(),
+        }
+        .render()?;
+
+        assert!(packages
+            .iter()
+            .all(|package| index.contains(&format!("<a href=\"/{package}/\">{package}</a>"))));
 
         Ok(())
     }
