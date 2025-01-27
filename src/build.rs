@@ -55,12 +55,12 @@ pub async fn build_and_publish(
     release_version: &str,
     output_dir: Option<PathBuf>,
     python_versions: &[PythonVersion],
-    publish: bool,
+    publish_notes: Option<String>,
 ) -> anyhow::Result<()> {
     let wheel_paths = build(project, release_version, output_dir, python_versions).await?;
 
-    if publish {
-        publish_release(project, release_version, &wheel_paths).await?;
+    if let Some(notes) = publish_notes {
+        publish_release(project, release_version, &wheel_paths, &notes).await?;
     }
 
     Ok(())
@@ -90,9 +90,9 @@ async fn publish_release(
     project: SupportedProjects,
     release_version: &str,
     wheel_paths: &[PathBuf],
+    notes: &str,
 ) -> anyhow::Result<()> {
     let tag = format!("{project}/v{release_version}");
-    let notes = format!("Generated using `wasi-wheels build {project} {release_version}`");
 
     let hashes = generate_hashes(wheel_paths).await?;
     let temp_dir = tempfile::tempdir()?;
@@ -100,13 +100,11 @@ async fn publish_release(
     fs::write(&hashes_path, hashes).await?;
 
     run(Command::new("gh").args(
-        [
-            "release", "create", &tag, "--title", &tag, "--notes", &notes,
-        ]
-        .into_iter()
-        .map(OsStr::new)
-        .chain(wheel_paths.iter().map(|p| p.as_os_str()))
-        .chain(once(hashes_path.as_os_str())),
+        ["release", "create", &tag, "--title", &tag, "--notes", notes]
+            .into_iter()
+            .map(OsStr::new)
+            .chain(wheel_paths.iter().map(|p| p.as_os_str()))
+            .chain(once(hashes_path.as_os_str())),
     ))
     .await
 }

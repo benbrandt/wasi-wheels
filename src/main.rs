@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 use wasi_wheels::{
     build_and_publish, download_package, install_build_tools, PythonVersion, SupportedProjects,
 };
@@ -40,10 +40,37 @@ enum Commands {
         /// Optionally publish the wheel as a release in GitHub
         #[arg(long)]
         publish: bool,
+        /// Optionally publish the wheel as a release in GitHub
+        #[command(flatten)]
+        publish_flags: PublishFlags,
         /// Python versions to build with. Defaults to all supported versions
         #[arg(long, value_enum, default_values_t=[PythonVersion::Py3_12, PythonVersion::Py3_13])]
         python_versions: Vec<PythonVersion>,
     },
+}
+
+#[derive(Args, Debug)]
+#[group(requires = "publish")]
+struct PublishFlags {
+    /// Which repository this is being released for: <user>/<repo>
+    #[arg(long)]
+    repo: Option<String>,
+    /// Which run id was used when building in CI
+    #[arg(long)]
+    run_id: Option<usize>,
+}
+
+impl PublishFlags {
+    /// Generate info about the run context
+    fn run_info(&self) -> String {
+        match (self.repo.as_ref(), self.run_id) {
+            (None | Some(_), None) => "No provided run information".to_string(),
+            (None, Some(run_id)) => format!("Built with run {run_id}"),
+            (Some(repo), Some(run_id)) => {
+                format!("Built with run https://github.com/{repo}/actions/runs/{run_id}")
+            }
+        }
+    }
 }
 
 #[tokio::main]
@@ -63,13 +90,14 @@ async fn main() -> anyhow::Result<()> {
             output_dir,
             publish,
             python_versions,
+            publish_flags,
         } => {
             build_and_publish(
                 project,
                 &release_version,
                 output_dir,
                 &python_versions,
-                publish,
+                publish.then(|| publish_flags.run_info()),
             )
             .await
         }
