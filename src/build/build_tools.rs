@@ -62,7 +62,7 @@ impl PythonVersion {
     fn wasi_dir(self) -> PathBuf {
         self.cpython_dir().join(match self {
             PythonVersion::Py3_12 => "builddir/wasi",
-            PythonVersion::Py3_13 => "cross-build/wasm32-wasip1",
+            PythonVersion::Py3_13 => "cross-build/wasm32-wasip2",
         })
     }
 
@@ -98,7 +98,7 @@ impl PythonVersion {
         const PYTHON_EXECUTABLE: &str = "python.exe";
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         const PYTHON_EXECUTABLE: &str = "python";
-        const HOST_TRIPLE: &str = "wasm32-wasip1";
+        const HOST_TRIPLE: &str = "wasm32-wasip2";
         let github_branch = self.github_branch();
         let cpython = self.cpython_dir();
 
