@@ -1,0 +1,13 @@
+<!doctype html>
+<html>
+    <head>
+        <meta name="pypi:repository-version" content="1.0" />
+        <title>Links for {{ package }}</title>
+    </head>
+    <body>
+        <h1>Links for {{ package }}</h1>
+        {% for file in files %}
+        <a href="{{ file.url }}">{{ file.name }}</a>
+        {% endfor %}
+    </body>
+</html>
