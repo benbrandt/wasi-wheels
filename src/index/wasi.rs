@@ -17,10 +17,17 @@ mod tests {
     }
 
     impl Packages {
-        fn new(packages: HashSet<String>) -> Self {
-            Self { packages }
+        fn new() -> Self {
+            Self {
+                packages: HashSet::new(),
+            }
         }
 
+        fn insert(&mut self, package: String) {
+            self.packages.insert(package);
+        }
+
+        /// Generate the root index template for all packages
         fn generate_index(&self) -> anyhow::Result<String> {
             #[derive(Template)]
             #[template(path = "index.html")]
@@ -40,7 +47,7 @@ mod tests {
             #[template(path = "package_files.html")]
             struct PackageFilesTemplate {
                 package: String,
-                files: HashSet<File>,
+                files: HashSet<WheelFile>,
             }
 
             let mut templates = HashMap::new();
@@ -60,8 +67,11 @@ mod tests {
         }
     }
 
-    struct File {
+    /// A file in the index for a given package
+    struct WheelFile {
+        /// URL that can be used to download the wheel
         url: String,
+        /// The filename to render
         name: String,
     }
 
@@ -98,7 +108,7 @@ mod tests {
                 .into_stream(&self.client);
             pin!(releases);
 
-            let mut packages = HashSet::new();
+            let mut packages = Packages::new();
 
             while let Some(release) = releases.try_next().await? {
                 let Some((package, _)) = release.tag_name.split_once("/v") else {
@@ -107,7 +117,7 @@ mod tests {
                 packages.insert(package.to_owned());
             }
 
-            Ok(Packages::new(packages))
+            Ok(packages)
         }
     }
 
@@ -135,10 +145,10 @@ mod tests {
 
         assert_eq!(packages.packages.len(), templates.len());
 
-        for template in templates.values() {
-            // assert!(template.contains("<a href"));
-            // assert!(template.contains("#sha256="));
-        }
+        // for template in templates.values() {
+        // assert!(template.contains("<a href"));
+        // assert!(template.contains("#sha256="));
+        // }
 
         Ok(())
     }
