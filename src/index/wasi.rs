@@ -13,30 +13,30 @@ mod tests {
     use tokio::pin;
 
     struct Packages {
-        packages: HashSet<String>,
+        packages: HashMap<String, HashSet<WheelFile>>,
     }
 
     impl Packages {
         fn new() -> Self {
             Self {
-                packages: HashSet::new(),
+                packages: HashMap::new(),
             }
         }
 
         fn insert(&mut self, package: String) {
-            self.packages.insert(package);
+            self.packages.entry(package).or_default();
         }
 
         /// Generate the root index template for all packages
         fn generate_index(&self) -> anyhow::Result<String> {
             #[derive(Template)]
             #[template(path = "index.html")]
-            struct IndexTemplate {
-                packages: HashSet<String>,
+            struct IndexTemplate<'a> {
+                packages: HashSet<&'a str>,
             }
 
             Ok(IndexTemplate {
-                packages: self.packages.clone(),
+                packages: self.packages.keys().map(String::as_str).collect(),
             }
             .render()?)
         }
@@ -45,21 +45,17 @@ mod tests {
         fn generate_package_files(&self) -> anyhow::Result<HashMap<String, String>> {
             #[derive(Template)]
             #[template(path = "package_files.html")]
-            struct PackageFilesTemplate {
-                package: String,
-                files: HashSet<WheelFile>,
+            struct PackageFilesTemplate<'a> {
+                package: &'a str,
+                files: &'a HashSet<WheelFile>,
             }
 
             let mut templates = HashMap::new();
 
-            for package in &self.packages {
+            for (package, files) in &self.packages {
                 templates.insert(
                     package.clone(),
-                    PackageFilesTemplate {
-                        package: package.clone(),
-                        files: HashSet::new(),
-                    }
-                    .render()?,
+                    PackageFilesTemplate { package, files }.render()?,
                 );
             }
 
@@ -130,7 +126,7 @@ mod tests {
 
         assert!(packages
             .packages
-            .iter()
+            .keys()
             .all(|package| index.contains(&format!("<a href=\"/{package}/\">{package}</a>"))));
 
         Ok(())
