@@ -2,17 +2,67 @@
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashSet, sync::Arc};
+    use std::{
+        collections::{HashMap, HashSet},
+        sync::Arc,
+    };
 
     use futures_util::TryStreamExt;
     use octocrab::Octocrab;
     use rinja::Template;
     use tokio::pin;
 
-    #[derive(Template)]
-    #[template(path = "index.html")]
-    struct IndexTemplate {
+    struct Packages {
         packages: HashSet<String>,
+    }
+
+    impl Packages {
+        fn new(packages: HashSet<String>) -> Self {
+            Self { packages }
+        }
+
+        fn generate_index(&self) -> anyhow::Result<String> {
+            #[derive(Template)]
+            #[template(path = "index.html")]
+            struct IndexTemplate {
+                packages: HashSet<String>,
+            }
+
+            Ok(IndexTemplate {
+                packages: self.packages.clone(),
+            }
+            .render()?)
+        }
+
+        /// Returns hashmap of key Package Name and value rendered template
+        fn generate_package_files(&self) -> anyhow::Result<HashMap<String, String>> {
+            #[derive(Template)]
+            #[template(path = "package_files.html")]
+            struct PackageFilesTemplate {
+                package: String,
+                files: HashSet<File>,
+            }
+
+            let mut templates = HashMap::new();
+
+            for package in &self.packages {
+                templates.insert(
+                    package.clone(),
+                    PackageFilesTemplate {
+                        package: package.clone(),
+                        files: HashSet::new(),
+                    }
+                    .render()?,
+                );
+            }
+
+            Ok(templates)
+        }
+    }
+
+    struct File {
+        url: String,
+        name: String,
     }
 
     /// GitHub client for loading release information from a repository.
@@ -37,7 +87,7 @@ mod tests {
         ///
         /// # Returns
         /// A `Result` containing a `HashSet` of package names found in release tags.
-        async fn packages(&self, owner: &str, repo: &str) -> anyhow::Result<HashSet<String>> {
+        async fn packages(&self, owner: &str, repo: &str) -> anyhow::Result<Packages> {
             let releases = self
                 .client
                 .repos(owner, repo)
@@ -57,23 +107,38 @@ mod tests {
                 packages.insert(package.to_owned());
             }
 
-            Ok(packages)
+            Ok(Packages::new(packages))
         }
     }
 
     #[tokio::test]
-    async fn get_releases() -> anyhow::Result<()> {
+    async fn generate_package_index() -> anyhow::Result<()> {
         let releases = GitHubReleaseClient::new();
         let packages = releases.packages("benbrandt", "wasi-wheels").await?;
 
-        let index = IndexTemplate {
-            packages: packages.clone(),
-        }
-        .render()?;
+        let index = packages.generate_index()?;
 
         assert!(packages
+            .packages
             .iter()
             .all(|package| index.contains(&format!("<a href=\"/{package}/\">{package}</a>"))));
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn generate_package_files() -> anyhow::Result<()> {
+        let releases = GitHubReleaseClient::new();
+        let packages = releases.packages("benbrandt", "wasi-wheels").await?;
+
+        let templates = packages.generate_package_files()?;
+
+        assert_eq!(packages.packages.len(), templates.len());
+
+        for template in templates.values() {
+            // assert!(template.contains("<a href"));
+            // assert!(template.contains("#sha256="));
+        }
 
         Ok(())
     }
