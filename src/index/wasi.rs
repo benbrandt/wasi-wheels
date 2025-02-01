@@ -4,27 +4,69 @@
 mod tests {
     use std::{
         collections::{HashMap, HashSet},
+        path::Path,
         sync::Arc,
     };
 
     use futures_util::TryStreamExt;
-    use octocrab::Octocrab;
+    use octocrab::{models::repos::Asset, Octocrab};
+    use reqwest::Client;
     use rinja::Template;
     use tokio::pin;
+    use url::Url;
 
     struct Packages {
-        packages: HashMap<String, HashSet<WheelFile>>,
+        client: Client,
+        packages: HashMap<String, HashMap<String, WheelFile>>,
     }
 
     impl Packages {
         fn new() -> Self {
             Self {
+                client: Client::builder().use_rustls_tls().build().unwrap(),
                 packages: HashMap::new(),
             }
         }
 
-        fn insert(&mut self, package: String) {
-            self.packages.entry(package).or_default();
+        async fn extend(&mut self, package: &str, mut assets: Vec<Asset>) -> anyhow::Result<()> {
+            // Pull hashes file out first so we can add them after
+            let hashes = assets
+                .iter()
+                .position(|a| a.name == "hashes.txt")
+                .map(|index| assets.remove(index));
+
+            // Process wheel files
+            let packages = self.packages.entry(package.to_owned()).or_default();
+            for asset in assets.into_iter().filter(|a| {
+                Path::new(&a.name)
+                    .extension()
+                    .is_some_and(|ext| ext.eq_ignore_ascii_case("whl"))
+            }) {
+                packages.insert(
+                    asset.name.clone(),
+                    WheelFile {
+                        url: asset.browser_download_url,
+                        name: asset.name,
+                    },
+                );
+            }
+
+            // Add in the hashes
+            if let Some(hashes) = hashes {
+                let txt = self
+                    .client
+                    .get(hashes.browser_download_url)
+                    .send()
+                    .await?
+                    .text()
+                    .await?;
+                for (file, hash) in txt.lines().filter_map(|line| line.split_once('\t')) {
+                    let file = packages.get_mut(file).expect("File should already exist.");
+                    file.url.set_fragment(Some(&format!("sha256={hash}")));
+                }
+            }
+
+            Ok(())
         }
 
         /// Generate the root index template for all packages
@@ -47,7 +89,7 @@ mod tests {
             #[template(path = "package_files.html")]
             struct PackageFilesTemplate<'a> {
                 package: &'a str,
-                files: &'a HashSet<WheelFile>,
+                files: &'a HashSet<&'a WheelFile>,
             }
 
             let mut templates = HashMap::new();
@@ -55,7 +97,11 @@ mod tests {
             for (package, files) in &self.packages {
                 templates.insert(
                     package.clone(),
-                    PackageFilesTemplate { package, files }.render()?,
+                    PackageFilesTemplate {
+                        package,
+                        files: &files.values().collect(),
+                    }
+                    .render()?,
                 );
             }
 
@@ -64,9 +110,10 @@ mod tests {
     }
 
     /// A file in the index for a given package
+    #[derive(Debug, Hash, PartialEq, Eq)]
     struct WheelFile {
         /// URL that can be used to download the wheel
-        url: String,
+        url: Url,
         /// The filename to render
         name: String,
     }
@@ -110,7 +157,7 @@ mod tests {
                 let Some((package, _)) = release.tag_name.split_once("/v") else {
                     continue;
                 };
-                packages.insert(package.to_owned());
+                packages.extend(package, release.assets).await?;
             }
 
             Ok(packages)
@@ -141,10 +188,14 @@ mod tests {
 
         assert_eq!(packages.packages.len(), templates.len());
 
-        // for template in templates.values() {
-        // assert!(template.contains("<a href"));
-        // assert!(template.contains("#sha256="));
-        // }
+        for (package, files) in packages.packages {
+            let template = templates.get(&package).unwrap();
+            assert!(!files.is_empty());
+            for file in files.values() {
+                assert!(template.contains(&format!("<a href=\"{}\">{}</a>", file.url, file.name)));
+                assert!(file.url.as_str().contains("#sha256="));
+            }
+        }
 
         Ok(())
     }
