@@ -5,7 +5,7 @@
     </head>
     <body>
         {% for package in packages %}
-        <a href="/{{ package }}/">{{ package }}</a>
+        <a href="{{ package }}/">{{ package }}</a>
         {%- endfor %}
     </body>
 </html>
