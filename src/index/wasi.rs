@@ -193,7 +193,7 @@ mod tests {
         assert!(packages
             .packages
             .keys()
-            .all(|package| index.contains(&format!("<a href=\"/{package}/\">{package}</a>"))));
+            .all(|package| index.contains(&format!("<a href=\"{package}/\">{package}</a>"))));
 
         // Test individual packages
         for (package, files) in packages.packages {
