@@ -2,6 +2,9 @@ name: Build Index
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: [Package Build and Publish]
+    types: [completed]
 
 run-name: Build Index by @${{ github.actor }}
 
