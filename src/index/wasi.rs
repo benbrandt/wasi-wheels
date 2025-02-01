@@ -70,7 +70,7 @@ mod tests {
         }
 
         /// Generate the root index template for all packages
-        fn generate_index(&self) -> anyhow::Result<String> {
+        fn render_index(&self) -> anyhow::Result<String> {
             #[derive(Template)]
             #[template(path = "index.html")]
             struct IndexTemplate<'a> {
@@ -84,7 +84,7 @@ mod tests {
         }
 
         /// Returns hashmap of key Package Name and value rendered template
-        fn generate_package_files(&self) -> anyhow::Result<HashMap<String, String>> {
+        fn render_package_files(&self) -> anyhow::Result<HashMap<String, String>> {
             #[derive(Template)]
             #[template(path = "package_files.html")]
             struct PackageFilesTemplate<'a> {
@@ -165,26 +165,21 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn generate_package_index() -> anyhow::Result<()> {
+    async fn generate_package_files() -> anyhow::Result<()> {
         let releases = GitHubReleaseClient::new();
+        // This is expensive, so do it once and test twice
         let packages = releases.packages("benbrandt", "wasi-wheels").await?;
 
-        let index = packages.generate_index()?;
+        // Test index
+        let index = packages.render_index()?;
 
         assert!(packages
             .packages
             .keys()
             .all(|package| index.contains(&format!("<a href=\"/{package}/\">{package}</a>"))));
 
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn generate_package_files() -> anyhow::Result<()> {
-        let releases = GitHubReleaseClient::new();
-        let packages = releases.packages("benbrandt", "wasi-wheels").await?;
-
-        let templates = packages.generate_package_files()?;
+        // Test individual packages
+        let templates = packages.render_package_files()?;
 
         assert_eq!(packages.packages.len(), templates.len());
 
