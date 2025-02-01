@@ -8,10 +8,11 @@ use serde::Deserialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use tar::Archive;
+use wasi::GitHubReleaseClient;
 
 mod wasi;
 
-use crate::build::PACKAGES_DIR;
+use crate::build::{INDEX_DIR, PACKAGES_DIR};
 
 /// Download the sdist package for the specified project and version
 ///
@@ -44,6 +45,24 @@ pub async fn download_package(
         .download_sdist_and_unpack(output_dir)
         .await?;
     Ok(())
+}
+
+/// Generates the index for a given repo at the given path
+///
+/// # Errors
+/// If it cannot download release information or cannot write the files.
+pub async fn generate_index(
+    owner: &str,
+    repo: &str,
+    output_dir: Option<PathBuf>,
+) -> anyhow::Result<()> {
+    let output_dir = output_dir.unwrap_or_else(|| INDEX_DIR.clone());
+
+    GitHubReleaseClient::new()
+        .packages(owner, repo)
+        .await?
+        .generate_index(output_dir)
+        .await
 }
 
 /// Registry information for a given Python project in the registry

@@ -18,6 +18,8 @@ pub static REPO_DIR: LazyLock<PathBuf> =
     LazyLock::new(|| PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap()));
 /// Directory for storing package sdist folders
 pub static PACKAGES_DIR: LazyLock<PathBuf> = LazyLock::new(|| REPO_DIR.join("packages"));
+/// Directory for storing package index files
+pub static INDEX_DIR: LazyLock<PathBuf> = LazyLock::new(|| REPO_DIR.join("index"));
 /// Directory the Wasi SDK should be setup at
 static WASI_SDK: LazyLock<PathBuf> = LazyLock::new(|| REPO_DIR.join("wasi-sdk"));
 

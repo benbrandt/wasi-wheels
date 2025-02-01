@@ -21,3 +21,4 @@ target/
 wasi-sdk*
 cpython*
 packages/*
+index/*

@@ -4,7 +4,8 @@ use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
 use wasi_wheels::{
-    build_and_publish, download_package, install_build_tools, PythonVersion, SupportedProjects,
+    build_and_publish, download_package, generate_index, install_build_tools, PythonVersion,
+    SupportedProjects,
 };
 
 #[derive(Debug, Parser)]
@@ -46,6 +47,14 @@ enum Commands {
         /// Python versions to build with. Defaults to all supported versions
         #[arg(long, value_enum, default_values_t=[PythonVersion::Py3_12, PythonVersion::Py3_13])]
         python_versions: Vec<PythonVersion>,
+    },
+    /// Generate a Python Package Index for a given repo
+    GenerateIndex {
+        /// Which repository this is being released for: <user>/<repo>
+        repo: String,
+        /// Where to download. Defaults to "index" directory in current directory
+        #[arg(short, long)]
+        output_dir: Option<PathBuf>,
     },
 }
 
@@ -100,6 +109,12 @@ async fn main() -> anyhow::Result<()> {
                 publish.then(|| publish_flags.run_info()),
             )
             .await
+        }
+        Commands::GenerateIndex { repo, output_dir } => {
+            let (owner, repo) = repo
+                .split_once('/')
+                .ok_or_else(|| anyhow::anyhow!("Invalid repo argument of type <owner>/<repo>"))?;
+            generate_index(owner, repo, output_dir).await
         }
     }
 }

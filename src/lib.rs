@@ -9,7 +9,7 @@ mod build;
 mod index;
 
 pub use build::{build_and_publish, install_build_tools, PythonVersion, SupportedProjects};
-pub use index::download_package;
+pub use index::{download_package, generate_index};
 
 /// Run a given command with common error handling behavior
 ///
