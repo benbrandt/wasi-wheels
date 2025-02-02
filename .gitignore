@@ -22,3 +22,4 @@ wasi-sdk*
 cpython*
 packages/*
 index/*
+wasi_deps

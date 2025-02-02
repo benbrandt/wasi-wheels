@@ -1,0 +1,5 @@
+package test:component@0.1.0;
+
+world test {
+    include wasi:cli/command@0.2.0;
+}
