@@ -36,8 +36,8 @@ impl PythonVersion {
     /// What the current, exact version being used is
     fn current_patch_version(self) -> &'static str {
         match self {
-            Self::Py3_12 => "3.12.8",
-            Self::Py3_13 => "3.13.1",
+            Self::Py3_12 => "3.12.9",
+            Self::Py3_13 => "3.13.2",
         }
     }
 

@@ -14,8 +14,8 @@ fn install_build_tools() -> anyhow::Result<()> {
     assert.success();
 
     assert!(std::fs::read_dir("wasi-sdk")?.count() > 0);
-    assert!(std::fs::read_dir("cpython-3.12.8")?.count() > 0);
-    assert!(std::fs::read_dir("cpython-3.13.1")?.count() > 0);
+    assert!(std::fs::read_dir("cpython-3.12.9")?.count() > 0);
+    assert!(std::fs::read_dir("cpython-3.13.2")?.count() > 0);
 
     Ok(())
 }
