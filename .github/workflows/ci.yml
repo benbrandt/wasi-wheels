@@ -40,16 +40,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: |
-            3.12.8
-            3.13.1
+            3.12.9
+            3.13.2
       - uses: actions/cache@v4
         with:
-          path: cpython-3.12.8
-          key: cpython-wasi-3.12.8
+          path: cpython-3.12.9
+          key: cpython-wasi-3.12.9
       - uses: actions/cache@v4
         with:
-          path: cpython-3.13.1
-          key: cpython-wasi-3.13.1
+          path: cpython-3.13.2
+          key: cpython-wasi-3.13.2
       - uses: actions/cache@v4
         with:
           path: wasi-sdk
