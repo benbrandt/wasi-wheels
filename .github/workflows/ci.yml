@@ -45,18 +45,16 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: cpython-3.12.9
-          key: cpython-wasi-3.12.9
+          key: cpython-wasi-3.12.9-wasi-sdk-25.0.0
       - uses: actions/cache@v4
         with:
           path: cpython-3.13.2
-          key: cpython-wasi-3.13.2
+          key: cpython-wasi-3.13.2-wasi-sdk-25.0.0
       - uses: actions/cache@v4
         with:
           path: wasi-sdk
           key: wasi-sdk-25.0.0
-      - uses: taiki-e/install-action@510b3ecd7915856b6909305605afa7a8a57c1b04
-        with:
-          tool: wasmtime-cli
+      - uses: bytecodealliance/actions/wasmtime/setup@d742827944dcb656569399571a8a45261b5089f6
 
       - run: cargo run -- install-build-tools
       - run: cargo test --workspace --all-features
