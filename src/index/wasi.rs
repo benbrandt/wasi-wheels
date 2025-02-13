@@ -6,23 +6,21 @@ use itertools::Itertools;
 use octocrab::{models::repos::Asset, Octocrab};
 use reqwest::Client;
 use rinja::Template;
-use tokio::{fs, pin};
+use tokio::{fs, pin, task::JoinSet};
 use url::Url;
 
 pub struct Packages {
-    http: Client,
     packages: HashMap<String, HashMap<String, WheelFile>>,
 }
 
 impl Packages {
     fn new() -> Self {
         Self {
-            http: Client::builder().use_rustls_tls().build().unwrap(),
             packages: HashMap::new(),
         }
     }
 
-    async fn wheel_files(&self, mut assets: Vec<Asset>) -> anyhow::Result<Vec<WheelFile>> {
+    async fn wheel_files(mut assets: Vec<Asset>) -> anyhow::Result<Vec<WheelFile>> {
         // Pull hashes file out first so we can add them after
         let hash_file = assets
             .iter()
@@ -30,8 +28,8 @@ impl Packages {
             .map(|index| assets.remove(index));
 
         let mut hashes = if let Some(hashes) = hash_file {
-            let txt = self
-                .http
+            let client = Client::builder().use_rustls_tls().build().unwrap();
+            let txt = client
                 .get(hashes.browser_download_url)
                 .send()
                 .await?
@@ -175,12 +173,19 @@ impl GitHubReleaseClient {
 
         let mut packages = Packages::new();
 
+        let mut set = JoinSet::<anyhow::Result<_>>::new();
+
         while let Some(release) = releases.try_next().await? {
             let Some((package, _)) = release.tag_name.split_once("/v") else {
                 continue;
             };
-            let wheels = packages.wheel_files(release.assets).await?;
-            packages.extend(package, wheels);
+            let package = package.to_owned();
+            set.spawn(async move { Ok((package, Packages::wheel_files(release.assets).await?)) });
+        }
+
+        while let Some(res) = set.join_next().await {
+            let (package, wheels) = res??;
+            packages.extend(&package, wheels);
         }
 
         Ok(packages)
