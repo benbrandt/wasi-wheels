@@ -8,16 +8,20 @@ Right now this tooling can:
 
 - Setup the necessary build tooling
 - Download an sdist build for a given project and version
-- Build wheels for pydantic
-- Upload wheels to GitHub
-- TODO: Have a registry for installation
+- Build wheels for specific packages
+- Upload wheels to GitHub releases
+- Provide a registry for installation
+
+| **Supported Wheel**                                      | **Versions** |
+| -------------------------------------------------------- | ------------ |
+| [pydantic-core](https://pypi.org/project/pydantic-core/) | >= 2.18.3    |
 
 ## Use a wheel
 
 If you want to use a wheel for use with componentize-py, you can run the following:
 
 ```sh
-python3 -m pip install --target wasi_deps --platform any --platform wasi_0_0_0_wasm32 --python-version "3.12" --implementation cp --no-compile --only-binary :all: --index-url https://benbrandt.github.io/wasi-wheels/ --extra-index-url https://pypi.org/simple --upgrade pydantic-core
+python3 -m pip install --target wasi_deps --platform any --platform wasi_0_0_0_wasm32 --python-version "3.12" --implementation cp --no-compile --only-binary :all: --index-url https://benbrandt.github.io/wasi-wheels/ --extra-index-url https://pypi.org/simple --upgrade .
 ```
 
 Then you can run your componentize-py build like so:
@@ -28,7 +32,7 @@ componentize-py -w world componentize skill_module -o output_file -p . -p wasi_d
 
 ## Setup
 
-Make sure you have `python3.12` and [`rustup`](https://www.rust-lang.org/learn/get-started) installed.
+Make sure you have `python3.12` or `python3.13` and [`rustup`](https://www.rust-lang.org/learn/get-started) installed.
 
 After cloning the repo, you can run:
 
@@ -42,4 +46,16 @@ It will also install and compile a [fork of Cpython](https://github.com/benbrand
 
 This is important, because the target of these wheels is [componentize-py](https://github.com/bytecodealliance/componentize-py) which expects support for both of these.
 
-## Building a wheel
+## Building a wheel locally
+
+If you need to debug a build locally, you can run:
+
+```sh
+cargo run -- build <project> <version>
+```
+
+## Building the Index locally
+
+```sh
+cargo run -- generate-index benbrandt/wasi-wheels
+```
