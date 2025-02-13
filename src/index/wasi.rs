@@ -22,31 +22,14 @@ impl Packages {
         }
     }
 
-    async fn extend(&mut self, package: &str, mut assets: Vec<Asset>) -> anyhow::Result<()> {
+    async fn wheel_files(&self, mut assets: Vec<Asset>) -> anyhow::Result<Vec<WheelFile>> {
         // Pull hashes file out first so we can add them after
-        let hashes = assets
+        let hash_file = assets
             .iter()
             .position(|a| a.name == "hashes.txt")
             .map(|index| assets.remove(index));
 
-        // Process wheel files
-        let packages = self.packages.entry(package.to_owned()).or_default();
-        for asset in assets.into_iter().filter(|a| {
-            Path::new(&a.name)
-                .extension()
-                .is_some_and(|ext| ext.eq_ignore_ascii_case("whl"))
-        }) {
-            packages.insert(
-                asset.name.clone(),
-                WheelFile {
-                    url: asset.browser_download_url,
-                    name: asset.name,
-                },
-            );
-        }
-
-        // Add in the hashes
-        if let Some(hashes) = hashes {
+        let mut hashes = if let Some(hashes) = hash_file {
             let txt = self
                 .http
                 .get(hashes.browser_download_url)
@@ -54,13 +37,41 @@ impl Packages {
                 .await?
                 .text()
                 .await?;
-            for (file, hash) in txt.lines().filter_map(|line| line.split_once('\t')) {
-                let file = packages.get_mut(file).expect("File should already exist.");
-                file.url.set_fragment(Some(&format!("sha256={hash}")));
-            }
-        }
+            txt.lines()
+                .filter_map(|line| {
+                    line.split_once('\t')
+                        .map(|(a, b)| (a.to_owned(), b.to_owned()))
+                })
+                .collect::<HashMap<_, _>>()
+        } else {
+            HashMap::default()
+        };
 
-        Ok(())
+        // Process wheel files
+        Ok(assets
+            .into_iter()
+            .filter(|a| {
+                Path::new(&a.name)
+                    .extension()
+                    .is_some_and(|ext| ext.eq_ignore_ascii_case("whl"))
+            })
+            .map(|asset| {
+                let mut url = asset.browser_download_url;
+                if let Some(hash) = hashes.remove(&asset.name) {
+                    url.set_fragment(Some(&format!("sha256={hash}")));
+                }
+
+                WheelFile {
+                    url,
+                    name: asset.name,
+                }
+            })
+            .collect())
+    }
+
+    fn extend(&mut self, package: &str, wheels: Vec<WheelFile>) {
+        let packages = self.packages.entry(package.to_owned()).or_default();
+        packages.extend(wheels.into_iter().map(|a| (a.name.clone(), a)));
     }
 
     /// Output the index to a given path
@@ -168,7 +179,8 @@ impl GitHubReleaseClient {
             let Some((package, _)) = release.tag_name.split_once("/v") else {
                 continue;
             };
-            packages.extend(package, release.assets).await?;
+            let wheels = packages.wheel_files(release.assets).await?;
+            packages.extend(package, wheels);
         }
 
         Ok(packages)
