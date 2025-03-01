@@ -21,7 +21,7 @@ Right now this tooling can:
 If you want to use a wheel for use with componentize-py, you can run the following:
 
 ```sh
-python3 -m pip install --target wasi_deps --platform any --platform wasi_0_0_0_wasm32 --python-version "3.12" --implementation cp --no-compile --only-binary :all: --index-url https://benbrandt.github.io/wasi-wheels/ --extra-index-url https://pypi.org/simple --upgrade .
+python3 -m pip install --target wasi_deps --platform any --platform wasi_0_0_0_wasm32 --python-version "3.12" --only-binary :all: --index-url https://benbrandt.github.io/wasi-wheels/ --extra-index-url https://pypi.org/simple --upgrade .
 ```
 
 Then you can run your componentize-py build like so:
