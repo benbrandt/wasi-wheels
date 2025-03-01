@@ -4,8 +4,8 @@ use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
 use wasi_wheels::{
-    build_and_publish, download_package, generate_index, install_build_tools, PythonVersion,
-    SupportedProjects,
+    PythonVersion, SupportedProjects, build_and_publish, download_package, generate_index,
+    install_build_tools,
 };
 
 #[derive(Debug, Parser)]

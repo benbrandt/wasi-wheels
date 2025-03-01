@@ -3,7 +3,7 @@ use std::{collections::HashMap, path::Path, sync::Arc};
 
 use futures_util::TryStreamExt;
 use itertools::Itertools;
-use octocrab::{models::repos::Asset, Octocrab};
+use octocrab::{Octocrab, models::repos::Asset};
 use reqwest::Client;
 use rinja::Template;
 use tokio::{fs, pin, task::JoinSet};
@@ -207,10 +207,12 @@ mod tests {
 
         let index = fs::read_to_string(dir.join("index.html")).await?;
 
-        assert!(packages
-            .packages
-            .keys()
-            .all(|package| index.contains(&format!("<a href=\"{package}/\">{package}</a>"))));
+        assert!(
+            packages
+                .packages
+                .keys()
+                .all(|package| index.contains(&format!("<a href=\"{package}/\">{package}</a>")))
+        );
 
         // Test individual packages
         for (package, files) in packages.packages {
