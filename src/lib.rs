@@ -2,13 +2,13 @@
 
 use std::iter;
 
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use tokio::process::Command;
 
 mod build;
 mod index;
 
-pub use build::{build_and_publish, install_build_tools, PythonVersion, SupportedProjects};
+pub use build::{PythonVersion, SupportedProjects, build_and_publish, install_build_tools};
 pub use index::{download_package, generate_index};
 
 /// Run a given command with common error handling behavior
