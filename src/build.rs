@@ -1,6 +1,5 @@
 use std::{env, ffi::OsStr, iter::once, path::PathBuf, sync::LazyLock};
 
-use build_tools::download_wasi_sdk;
 use clap::ValueEnum;
 use sha2::{Digest, Sha256};
 use strum::IntoEnumIterator;
@@ -20,8 +19,6 @@ pub static REPO_DIR: LazyLock<PathBuf> =
 pub static PACKAGES_DIR: LazyLock<PathBuf> = LazyLock::new(|| REPO_DIR.join("packages"));
 /// Directory for storing package index files
 pub static INDEX_DIR: LazyLock<PathBuf> = LazyLock::new(|| REPO_DIR.join("index"));
-/// Directory the Wasi SDK should be setup at
-static WASI_SDK: LazyLock<PathBuf> = LazyLock::new(|| REPO_DIR.join("wasi-sdk"));
 
 /// Downloads and prepares the WASI-SDK for use in compilation steps.
 /// Downloads and compiles a fork of Python 3.12 that can be compiled to WASI for use with componentize-py
@@ -32,8 +29,6 @@ static WASI_SDK: LazyLock<PathBuf> = LazyLock::new(|| REPO_DIR.join("wasi-sdk"))
 /// # Panics
 /// If certain paths are invalid because of failed download
 pub async fn install_build_tools() -> anyhow::Result<()> {
-    // Make sure WASI SDK is available
-    download_wasi_sdk().await?;
     for python_version in PythonVersion::iter() {
         python_version.download_and_compile_cpython().await?;
     }
