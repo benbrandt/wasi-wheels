@@ -1,4 +1,7 @@
-use std::{env, path::PathBuf};
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
 
 use clap::ValueEnum;
 use flate2::bufread::GzDecoder;
@@ -261,6 +264,29 @@ impl PythonVersion {
         }
 
         Ok(())
+    }
+
+    /// Create a virtual environment for the given Python version within the given directory.
+    /// Returns the PATH variable to set with the virtual environment's bin directory.
+    ///
+    /// # Errors
+    ///
+    /// This function can fail if the virtual environment creation fails.
+    pub async fn create_venv(self, dir: impl AsRef<Path>) -> anyhow::Result<String> {
+        let venv_dir = dir.as_ref().join(format!(".venv-{self}"));
+        let path = format!(
+            "{}:{}",
+            venv_dir.join("bin").to_string_lossy(),
+            env::var("PATH").unwrap_or_default()
+        );
+
+        if !venv_dir.exists() {
+            run(Command::new(format!("python{self}"))
+                .args(["-m", "venv", &venv_dir.to_string_lossy()])
+                .current_dir(&dir))
+            .await?;
+        }
+        Ok(path)
     }
 }
 

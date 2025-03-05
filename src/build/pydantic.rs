@@ -1,8 +1,15 @@
-use std::{env, path::PathBuf};
+use std::path::PathBuf;
 
 use tokio::process::Command;
 
-use crate::{build::build_tools::PythonVersion, download_package, run};
+use crate::{
+    SupportedProjects,
+    build::{
+        build_tools::PythonVersion,
+        wheels::{default_wheel_flags, retag_any_wheel, wheel_path},
+    },
+    download_package, run,
+};
 
 /// Builds Pydantic and returns the wheel path for publishing
 pub async fn build(
@@ -10,40 +17,25 @@ pub async fn build(
     version: &str,
     output_dir: Option<PathBuf>,
 ) -> anyhow::Result<PathBuf> {
-    const PLATFORM_TAG: &str = "wasi_0_0_0_wasm32";
     const RUST_TARGET: &str = "wasm32-wasip1";
     let package_dir = download_package("pydantic-core", version, output_dir).await?;
     let wasi_sdk_path = python_version.wasi_sdk_path();
+    let path_variable = python_version.create_venv(&package_dir).await?;
 
-    let venv_dir = package_dir.join(format!(".venv-{python_version}"));
-    let path = format!(
-        "{}:{}",
-        venv_dir.join("bin").to_str().unwrap(),
-        env::var("PATH").unwrap_or_default()
+    let wheel = wheel_path(
+        SupportedProjects::PydanticCore,
+        python_version,
+        &package_dir,
+        version,
     );
-
-    if !venv_dir.exists() {
-        run(Command::new(format!("python{python_version}"))
-            .args(["-m", "venv", venv_dir.to_str().unwrap()])
-            .current_dir(&package_dir))
-        .await?;
-    }
-
-    let wheel = package_dir.join(format!(
-        "dist/pydantic_core-{version}-cp{py_version}-cp{py_version}-{PLATFORM_TAG}.whl",
-        py_version = python_version.to_string().replace('.', "")
-    ));
     if !wheel.exists() {
         run(Command::new("pip")
             .args(["install", "typing-extensions", "maturin", "--upgrade"])
             // Make it possible to not have to activate the venv
-            .env("PATH", &path))
+            .env("PATH", &path_variable))
         .await?;
 
-        let cross_prefix = python_version.cross_prefix();
-        let cc = wasi_sdk_path.join("bin/clang");
-
-        run(Command::new("maturin").args([
+        run(default_wheel_flags(Command::new("maturin").args([
             "build",
             "--release",
             "--target",
@@ -52,49 +44,21 @@ pub async fn build(
             "dist",
             "-i",
             &format!("python{python_version}"),
-        ])
-            .current_dir(&package_dir)
-            // Make it possible to not have to activate the venv
-            .env("PATH", &path)
-            .env("CROSS_PREFIX", &cross_prefix)
-            .env("WASI_SDK_PATH", &wasi_sdk_path)
+        ]), python_version, &package_dir, &path_variable)
             .env("PYO3_CROSS_LIB_DIR", python_version.cross_lib_dir())
-            .env("SYSCONFIG", python_version.cross_lib_dir())
-            .env("CC", &cc)
-            .env("CXX", wasi_sdk_path.join("bin/clang++"))
-            .env(
-                "PYTHONPATH",
-                cross_prefix.join(format!("lib/python{python_version}")),
-            )
             .env("RUSTFLAGS",  format!("-C link-args=-L{wasi_sdk}/share/wasi-sysroot/lib/{RUST_TARGET}/ -C link-self-contained=no -C link-args=--experimental-pic -C link-args=--shared -C relocation-model=pic -C linker-plugin-lto=yes", wasi_sdk = wasi_sdk_path.to_str().unwrap()))
-            .env("CFLAGS", format!("-I{}/include/python{python_version} -D__EMSCRIPTEN__=1", cross_prefix.to_str().unwrap()))
-            .env("CXXFLAGS", format!("-I{}/include/python{python_version}", cross_prefix.to_str().unwrap()))
-            .env("LDSHARED", cc)
-            .env("AR", wasi_sdk_path.join("bin/ar"))
-            .env("RANLIB", "true")
-            .env("LDFLAGS", "-shared")
-            .env("_PYTHON_SYSCONFIGDATA_NAME", "_sysconfigdata__wasi_wasm32-wasi")
             .env("CARGO_BUILD_TARGET", RUST_TARGET)
         )
         .await?;
 
         // Rewrite the wheel to the correct target
-        run(Command::new("pip")
-            .args(["install", "wheel", "--upgrade"])
-            // Make it possible to not have to activate the venv
-            .env("PATH", &path))
-        .await?;
-        run(Command::new("wheel")
-            .args([
-                "tags",
-                "--platform-tag",
-                PLATFORM_TAG,
-                "--remove",
-                // Maturin outputs a wheel with `any` platform tag
-                &wheel.to_str().unwrap().replace(PLATFORM_TAG, "any"),
-            ])
-            // Make it possible to not have to activate the venv
-            .env("PATH", &path))
+        retag_any_wheel(
+            SupportedProjects::PydanticCore,
+            python_version,
+            package_dir,
+            version,
+            &path_variable,
+        )
         .await?;
     }
 
