@@ -9,6 +9,7 @@ use crate::run;
 
 mod build_tools;
 mod pydantic;
+mod wheels;
 
 pub use build_tools::PythonVersion;
 

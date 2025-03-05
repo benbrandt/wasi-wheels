@@ -92,7 +92,10 @@ async fn main() -> anyhow::Result<()> {
             project,
             release_version,
             output_dir,
-        } => download_package(&project, &release_version, output_dir).await,
+        } => {
+            download_package(&project, &release_version, output_dir).await?;
+            Ok(())
+        }
         Commands::Build {
             project,
             release_version,
