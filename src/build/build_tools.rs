@@ -53,7 +53,11 @@ impl PythonVersion {
 
     /// Directory Cpython should be setup at
     pub fn cpython_dir(self) -> PathBuf {
-        REPO_DIR.join(format!("cpython-{}", self.current_patch_version()))
+        REPO_DIR.join(format!(
+            "cpython-{}-wasi-sdk-{}",
+            self.current_patch_version(),
+            self.wasi_sdk_version().version()
+        ))
     }
 
     /// Directory for the wasi install directory

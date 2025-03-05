@@ -44,11 +44,11 @@ jobs:
             3.13.2
       - uses: actions/cache@v4
         with:
-          path: cpython-3.12.9
+          path: cpython-3.12.9-wasi-sdk-25.0
           key: python-cpython-wasi-3.12.9-wasi-sdk-25.0.0
       - uses: actions/cache@v4
         with:
-          path: cpython-3.13.2
+          path: cpython-3.13.2-wasi-sdk-25.0
           key: python-cpython-wasi-3.13.2-wasi-sdk-25.0.0
       - uses: actions/cache@v4
         with:
