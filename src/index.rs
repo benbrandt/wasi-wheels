@@ -1,4 +1,7 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 use bytes::Bytes;
 use flate2::bufread::GzDecoder;
@@ -16,23 +19,24 @@ use crate::build::{INDEX_DIR, PACKAGES_DIR};
 
 /// Download the sdist package for the specified project and version
 ///
+/// Returns the path to the downloaded package.
+///
 /// # Errors
 /// Will error if the project or version cannot be found or unpacked.
 pub async fn download_package(
     project: &str,
     release_version: &str,
     output_dir: Option<PathBuf>,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<PathBuf> {
     let output_dir = output_dir.unwrap_or_else(|| PACKAGES_DIR.clone());
 
-    if output_dir
-        .join(format!("{project}-{release_version}"))
-        .exists()
-        || output_dir
-            .join(format!("{}-{release_version}", project.to_snake_case()))
-            .exists()
-    {
-        return Ok(());
+    let default_path = output_dir.join(format!("{project}-{release_version}"));
+    let snake_case_path = output_dir.join(format!("{}-{release_version}", project.to_snake_case()));
+
+    if default_path.exists() {
+        return Ok(default_path);
+    } else if snake_case_path.exists() {
+        return Ok(snake_case_path);
     }
 
     PythonPackageIndex::default()
@@ -43,8 +47,7 @@ pub async fn download_package(
             "No version {release_version} for project {project}"
         ))?
         .download_sdist_and_unpack(output_dir)
-        .await?;
-    Ok(())
+        .await
 }
 
 /// Generates the index for a given repo at the given path
@@ -147,9 +150,11 @@ impl ProjectFile {
 
     /// Download the sdist archive url and unpack it at the given destination
     ///
+    /// Returns the path to the extracted archive
+    ///
     /// # Errors
     /// Will error if the file fails to download or unpack at the given destination.
-    async fn download_sdist_and_unpack(&self, dst: impl Into<PathBuf>) -> anyhow::Result<()> {
+    async fn download_sdist_and_unpack(&self, dst: impl Into<PathBuf>) -> anyhow::Result<PathBuf> {
         if !self.filename.ends_with(".tar.gz") {
             return Err(anyhow::anyhow!(
                 "Project file should only be of sdist type and a gzipped tar archive."
@@ -158,11 +163,22 @@ impl ProjectFile {
 
         let bytes = self.download().await?;
         let dst = dst.into();
-        tokio::task::spawn_blocking(move || Archive::new(GzDecoder::new(&bytes[..])).unpack(dst))
-            .await??;
+        let output_dir = dst.clone();
+        let path =
+            tokio::task::spawn_blocking(move || extract_archive(&bytes, output_dir)).await??;
 
-        Ok(())
+        Ok(dst.join(path))
     }
+}
+
+fn extract_archive(bytes: &Bytes, dst: impl AsRef<Path>) -> anyhow::Result<PathBuf> {
+    // Find out the path we are extracting to
+    let mut archive = Archive::new(GzDecoder::new(&bytes[..]));
+    let entry = archive.entries()?.next().unwrap()?;
+    let path = entry.path()?.parent().unwrap().to_owned();
+    // Actually extract. New archive because we've already read entries in the previous step
+    Archive::new(GzDecoder::new(&bytes[..])).unpack(dst)?;
+    Ok(path)
 }
 
 /// Hashes available for validating the file contents

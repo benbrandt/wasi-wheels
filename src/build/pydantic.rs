@@ -4,8 +4,6 @@ use tokio::process::Command;
 
 use crate::{build::build_tools::PythonVersion, download_package, run};
 
-use super::PACKAGES_DIR;
-
 /// Builds Pydantic and returns the wheel path for publishing
 pub async fn build(
     python_version: PythonVersion,
@@ -14,9 +12,7 @@ pub async fn build(
 ) -> anyhow::Result<PathBuf> {
     const PLATFORM_TAG: &str = "wasi_0_0_0_wasm32";
     const RUST_TARGET: &str = "wasm32-wasip1";
-    let output_dir = output_dir.unwrap_or_else(|| PACKAGES_DIR.clone());
-    let package_dir = output_dir.join(format!("pydantic_core-{version}"));
-    download_package("pydantic-core", version, Some(output_dir)).await?;
+    let package_dir = download_package("pydantic-core", version, output_dir).await?;
     let wasi_sdk_path = python_version.wasi_sdk_path();
 
     let venv_dir = package_dir.join(format!(".venv-{python_version}"));
