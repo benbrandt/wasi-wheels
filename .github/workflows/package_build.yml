@@ -63,7 +63,7 @@ jobs:
           key: python-cpython-wasi-3.13.2-wasi-sdk-25.0.0
       - uses: actions/cache@v4
         with:
-          path: wasi-sdk-25.0.0
+          path: wasi-sdk-25.0
           key: wasi-sdk-25.0.0
 
       - run: cargo run -- install-build-tools

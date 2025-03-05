@@ -52,7 +52,7 @@ jobs:
           key: python-cpython-wasi-3.13.2-wasi-sdk-25.0.0
       - uses: actions/cache@v4
         with:
-          path: wasi-sdk-25.0.0
+          path: wasi-sdk-25.0
           key: wasi-sdk-25.0.0
       - uses: bytecodealliance/actions/wasmtime/setup@3b93676295fd6f7eaa7af2c2785539e052fa8349
 
