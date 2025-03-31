@@ -1,11 +1,11 @@
 //! Generate a custom index for WASI wheels.
 use std::{collections::HashMap, path::Path, sync::Arc};
 
+use askama::Template;
 use futures_util::TryStreamExt;
 use itertools::Itertools;
 use octocrab::{Octocrab, models::repos::Asset};
 use reqwest::Client;
-use rinja::Template;
 use tokio::{fs, pin, task::JoinSet};
 use url::Url;
 
