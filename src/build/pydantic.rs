@@ -44,9 +44,10 @@ pub async fn build(
             "dist",
             "-i",
             &format!("python{python_version}"),
+            "--strip"
         ]), python_version, &package_dir, &path_variable)
             .env("PYO3_CROSS_LIB_DIR", python_version.cross_lib_dir())
-            .env("RUSTFLAGS",  format!("-C link-args=-L{wasi_sdk}/share/wasi-sysroot/lib/{RUST_TARGET}/ -C link-self-contained=no -C link-args=--experimental-pic -C link-args=--shared -C relocation-model=pic -C linker-plugin-lto=yes", wasi_sdk = wasi_sdk_path.to_str().unwrap()))
+            .env("RUSTFLAGS",  format!("-C link-args=-L{wasi_sdk}/share/wasi-sysroot/lib/{RUST_TARGET}/ -C link-self-contained=no -C link-args=--experimental-pic -C link-args=--shared -C relocation-model=pic -C linker-plugin-lto=yes -C opt-level=s -C lto=true -C codegen-units=1", wasi_sdk = wasi_sdk_path.to_str().unwrap()))
             .env("CARGO_BUILD_TARGET", RUST_TARGET)
         )
         .await?;
