@@ -44,7 +44,7 @@ impl PythonVersion {
     /// Which version of WASI SDK should be used
     fn wasi_sdk_version(self) -> WasiSdk {
         match self {
-            Self::Py3_12 | Self::Py3_13 => WasiSdk::V25,
+            Self::Py3_12 | Self::Py3_13 => WasiSdk::V24,
         }
     }
 
@@ -305,19 +305,19 @@ async fn get_bytes(url: impl IntoUrl) -> anyhow::Result<bytes::Bytes> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum WasiSdk {
-    V25,
+    V24,
 }
 
 impl WasiSdk {
     fn release(&self) -> &str {
         match self {
-            Self::V25 => "wasi-sdk-25",
+            Self::V24 => "wasi-sdk-24",
         }
     }
 
     fn version(&self) -> &str {
         match self {
-            Self::V25 => "25.0",
+            Self::V24 => "24.0",
         }
     }
 

@@ -13,8 +13,8 @@ fn install_build_tools() -> anyhow::Result<()> {
 
     assert.success();
 
-    assert!(std::fs::read_dir("cpython-3.12.9-wasi-sdk-25.0")?.count() > 0);
-    assert!(std::fs::read_dir("cpython-3.13.2-wasi-sdk-25.0")?.count() > 0);
+    assert!(std::fs::read_dir("cpython-3.12.9-wasi-sdk-24.0")?.count() > 0);
+    assert!(std::fs::read_dir("cpython-3.13.2-wasi-sdk-24.0")?.count() > 0);
 
     Ok(())
 }
