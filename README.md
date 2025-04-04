@@ -40,11 +40,9 @@ After cloning the repo, you can run:
 cargo run -- install-build-tools
 ```
 
-This will setup the latest version of [WASI SDK](https://github.com/WebAssembly/wasi-sdk) with some minor patches for compiling CPython (mainly making wasip2 look like wasi for now, until better support for the correct target is available).
+This will setup [WASI SDK v24](https://github.com/WebAssembly/wasi-sdk) with some minor patches for compiling CPython (mainly making wasip2 look like wasi for now, until better support for the correct target is available).
 
-It will also install and compile a [fork of Cpython](https://github.com/benbrandt/cpython/tree/3.12-wasi) that can be compiled for WASI targets with socket and dynamic linking support.
-
-This is important, because the target of these wheels is [componentize-py](https://github.com/bytecodealliance/componentize-py) which expects support for both of these.
+It also pulls down Cpython for 3.12 and 3.13 and compiles it for wasi.
 
 ## Building a wheel locally
 
