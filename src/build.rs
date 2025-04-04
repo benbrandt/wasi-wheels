@@ -1,4 +1,4 @@
-use std::{env, ffi::OsStr, iter::once, path::PathBuf, sync::LazyLock};
+use std::{env, ffi::OsStr, fmt::Write, iter::once, path::PathBuf, sync::LazyLock};
 
 use clap::ValueEnum;
 use sha2::{Digest, Sha256};
@@ -113,7 +113,7 @@ async fn generate_hashes(wheel_paths: &[PathBuf]) -> anyhow::Result<String> {
         let content = fs::read(wheel_path).await?;
         let hash = format!("{:x}", Sha256::digest(&content));
         let filename = wheel_path.file_name().unwrap().to_string_lossy();
-        hashes.push_str(&format!("{filename}\t{hash}\n"));
+        writeln!(hashes, "{filename}\t{hash}").unwrap();
     }
 
     Ok(hashes)
