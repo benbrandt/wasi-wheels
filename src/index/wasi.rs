@@ -1,10 +1,15 @@
 //! Generate a custom index for WASI wheels.
-use std::{collections::HashMap, path::Path, sync::Arc};
+use std::{
+    collections::HashMap,
+    path::Path,
+    sync::{Arc, LazyLock},
+};
 
 use askama::Template;
 use futures_util::TryStreamExt;
 use itertools::Itertools;
 use octocrab::{Octocrab, models::repos::Asset};
+use regex::Regex;
 use reqwest::Client;
 use tokio::{fs, pin, task::JoinSet};
 use url::Url;
@@ -20,14 +25,37 @@ impl Packages {
         }
     }
 
-    async fn wheel_files(mut assets: Vec<Asset>) -> anyhow::Result<Vec<WheelFile>> {
+    fn parse_body_hashes(body: &str) -> Option<HashMap<String, String>> {
+        static RE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"### SHA256 Hashes\n\n```\n(?<hashes>.+)\n```").unwrap());
+        RE.captures(body).map(|cap| {
+            let hashes = &cap["hashes"];
+
+            hashes
+                .lines()
+                .filter_map(|line| {
+                    line.split_once('\t')
+                        .map(|(hash, wheel)| (wheel.to_owned(), hash.to_owned()))
+                })
+                .collect::<HashMap<_, _>>()
+        })
+    }
+
+    async fn wheel_files(
+        body: Option<String>,
+        mut assets: Vec<Asset>,
+    ) -> anyhow::Result<Vec<WheelFile>> {
         // Pull hashes file out first so we can add them after
         let hash_file = assets
             .iter()
             .position(|a| a.name == "hashes.txt")
             .map(|index| assets.remove(index));
 
-        let mut hashes = if let Some(hashes) = hash_file {
+        // Use body if available, otherwise default to old hashfile approach
+        let mut hashes = if let Some(hashes) = body.and_then(|body| Self::parse_body_hashes(&body))
+        {
+            hashes
+        } else if let Some(hashes) = hash_file {
             let client = Client::builder().use_rustls_tls().build().unwrap();
             let txt = client
                 .get(hashes.browser_download_url)
@@ -180,7 +208,12 @@ impl GitHubReleaseClient {
                 continue;
             };
             let package = package.to_owned();
-            set.spawn(async move { Ok((package, Packages::wheel_files(release.assets).await?)) });
+            set.spawn(async move {
+                Ok((
+                    package,
+                    Packages::wheel_files(release.body, release.assets).await?,
+                ))
+            });
         }
 
         while let Some(res) = set.join_next().await {

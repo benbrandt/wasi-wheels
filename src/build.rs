@@ -1,4 +1,4 @@
-use std::{env, ffi::OsStr, fmt::Write, iter::once, path::PathBuf, sync::LazyLock};
+use std::{env, ffi::OsStr, fmt::Write, path::PathBuf, sync::LazyLock};
 
 use clap::ValueEnum;
 use sha2::{Digest, Sha256};
@@ -93,16 +93,16 @@ async fn publish_release(
     let tag = format!("{project}/v{release_version}");
 
     let hashes = generate_hashes(wheel_paths).await?;
-    let temp_dir = tempfile::tempdir()?;
-    let hashes_path = temp_dir.path().join("hashes.txt");
-    fs::write(&hashes_path, hashes).await?;
+
+    let notes = format!("{notes}\n\n### SHA256 Hashes\n\n```\n{hashes}\n```");
 
     run(Command::new("gh").args(
-        ["release", "create", &tag, "--title", &tag, "--notes", notes]
-            .into_iter()
-            .map(OsStr::new)
-            .chain(wheel_paths.iter().map(|p| p.as_os_str()))
-            .chain(once(hashes_path.as_os_str())),
+        [
+            "release", "create", &tag, "--title", &tag, "--notes", &notes,
+        ]
+        .into_iter()
+        .map(OsStr::new)
+        .chain(wheel_paths.iter().map(|p| p.as_os_str())),
     ))
     .await
 }
@@ -113,7 +113,7 @@ async fn generate_hashes(wheel_paths: &[PathBuf]) -> anyhow::Result<String> {
         let content = fs::read(wheel_path).await?;
         let hash = format!("{:x}", Sha256::digest(&content));
         let filename = wheel_path.file_name().unwrap().to_string_lossy();
-        writeln!(hashes, "{filename}\t{hash}").unwrap();
+        writeln!(hashes, "{hash}\t{filename}").unwrap();
     }
 
     Ok(hashes)
