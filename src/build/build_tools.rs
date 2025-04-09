@@ -140,6 +140,7 @@ impl PythonVersion {
                     .args([
                         "./Tools/wasm/wasi.py",
                         "configure-build-python",
+                        "--quiet",
                         "--",
                         "--config-cache",
                     ]))
@@ -148,7 +149,7 @@ impl PythonVersion {
                 run(Command::new("python3")
                     .env("WASI_SDK_PATH", &wasi_sdk_path)
                     .current_dir(&cpython)
-                    .args(["./Tools/wasm/wasi.py", "make-build-python"]))
+                    .args(["./Tools/wasm/wasi.py", "make-build-python", "--quiet"]))
                 .await?;
             }
 
@@ -161,6 +162,7 @@ impl PythonVersion {
                     &format!("--host-triple={HOST_TRIPLE}"),
                     // Current script doesn't work for some reason...
                     "--host-runner=echo",
+                    "--quiet",
                     "--",
                     "--config-cache",
                     &format!("--prefix={}/install", cpython_wasi_dir.to_str().unwrap()),
@@ -176,6 +178,7 @@ impl PythonVersion {
                 .args([
                     "./Tools/wasm/wasi.py",
                     "make-host",
+                    "--quiet",
                     &format!("--host-triple={HOST_TRIPLE}"),
                 ]))
             .await?;
