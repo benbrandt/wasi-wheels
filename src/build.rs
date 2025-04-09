@@ -54,11 +54,19 @@ pub async fn build_and_publish(
     output_dir: Option<PathBuf>,
     python_versions: &[PythonVersion],
     publish_notes: Option<String>,
+    replace_existing_release: bool,
 ) -> anyhow::Result<()> {
     let wheel_paths = build(project, release_version, output_dir, python_versions).await?;
 
     if let Some(notes) = publish_notes {
-        publish_release(project, release_version, &wheel_paths, &notes).await?;
+        publish_release(
+            project,
+            release_version,
+            &wheel_paths,
+            &notes,
+            replace_existing_release,
+        )
+        .await?;
     }
 
     Ok(())
@@ -89,8 +97,18 @@ async fn publish_release(
     release_version: &str,
     wheel_paths: &[PathBuf],
     notes: &str,
+    replace_existing_release: bool,
 ) -> anyhow::Result<()> {
     let tag = format!("{project}/v{release_version}");
+
+    // If the release already exists, delete first
+    if replace_existing_release
+        && run(Command::new("gh").args(["release", "view", &tag]))
+            .await
+            .is_ok()
+    {
+        run(Command::new("gh").args(["release", "delete", &tag, "--cleanup-tag"])).await?;
+    }
 
     let hashes = generate_hashes(wheel_paths).await?;
 

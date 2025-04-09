@@ -47,6 +47,9 @@ enum Commands {
         /// Python versions to build with. Defaults to all supported versions
         #[arg(long, value_enum, default_values_t=[PythonVersion::Py3_12, PythonVersion::Py3_13])]
         python_versions: Vec<PythonVersion>,
+        /// Replace existing release if it exists
+        #[arg(long)]
+        replace_existing_release: bool,
     },
     /// Generate a Python Package Index for a given repo
     GenerateIndex {
@@ -103,6 +106,7 @@ async fn main() -> anyhow::Result<()> {
             publish,
             python_versions,
             publish_flags,
+            replace_existing_release,
         } => {
             build_and_publish(
                 project,
@@ -110,6 +114,7 @@ async fn main() -> anyhow::Result<()> {
                 output_dir,
                 &python_versions,
                 publish.then(|| publish_flags.run_info()),
+                replace_existing_release,
             )
             .await
         }
