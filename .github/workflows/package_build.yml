@@ -27,6 +27,11 @@ on:
         default: false
         type: boolean
         description: "Publish the output to a GitHub release"
+      replace_existing_release:
+        required: true
+        default: false
+        type: boolean
+        description: "Replace existing release"
 
 run-name: Build ${{ inputs.project }} ${{ inputs.version }} by @${{ github.actor }}
 
@@ -67,6 +72,6 @@ jobs:
           key: wasi-sdk-24.0.0
 
       - run: cargo run -- install-build-tools
-      - run: cargo run -- build ${{ inputs.project }} ${{ inputs.version }} ${{ inputs.python_3_12 && '--python-versions py3-12' || '' }} ${{ inputs.python_3_13 && '--python-versions py3-13' || '' }} ${{ inputs.publish && format('--publish --repo {0} --run-id {1}', github.repository, github.run_id) || '' }}
+      - run: cargo run -- build ${{ inputs.project }} ${{ inputs.version }} ${{ inputs.python_3_12 && '--python-versions py3-12' || '' }} ${{ inputs.python_3_13 && '--python-versions py3-13' || '' }} ${{ inputs.publish && format('--publish --repo {0} --run-id {1}', github.repository, github.run_id) || '' }} ${{ inputs.replace_existing_release && '--replace-existing-release' || '' }}
         env:
           GH_TOKEN: ${{ github.token }}
