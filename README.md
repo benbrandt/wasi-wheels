@@ -12,9 +12,10 @@ Right now this tooling can:
 - Upload wheels to GitHub releases
 - Provide a registry for installation
 
-| **Supported Wheel**                                      | **Versions** |
-| -------------------------------------------------------- | ------------ |
-| [pydantic-core](https://pypi.org/project/pydantic-core/) | >= 2.18.3    |
+| **Supported Wheel**                                      | **Versions**  |
+| -------------------------------------------------------- | ------------- |
+| [pydantic-core](https://pypi.org/project/pydantic-core/) | >= 2.18.3     |
+| [regex](https://pypi.org/project/regex/)                 | >= 2021.11.10 |
 
 ## Use a wheel
 
