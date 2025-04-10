@@ -26,8 +26,9 @@ impl Packages {
     }
 
     fn parse_body_hashes(body: &str) -> Option<HashMap<String, String>> {
-        static RE: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r"### SHA256 Hashes\n\n```\n(?<hashes>.+)\n```").unwrap());
+        static RE: LazyLock<Regex> = LazyLock::new(|| {
+            Regex::new(r"(?s)### SHA256 Hashes\n\n```\n(?<hashes>.+)\n```").unwrap()
+        });
         RE.captures(body).map(|cap| {
             let hashes = &cap["hashes"];
 
