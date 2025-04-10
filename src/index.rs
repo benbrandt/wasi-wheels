@@ -177,7 +177,11 @@ fn extract_archive(bytes: &Bytes, dst: impl AsRef<Path>) -> anyhow::Result<PathB
     // Find out the path we are extracting to
     let mut archive = Archive::new(GzDecoder::new(&bytes[..]));
     let entry = archive.entries()?.next().unwrap()?;
-    let path = entry.path()?.parent().unwrap().to_owned();
+    let path = match entry.path()?.parent() {
+        Some(path) if path.to_str() == Some("") => entry.path()?.into_owned(),
+        Some(path) => path.to_owned(),
+        None => return Err(anyhow::anyhow!("Invalid archive")),
+    };
     // Actually extract. New archive because we've already read entries in the previous step
     Archive::new(GzDecoder::new(&bytes[..])).unpack(dst)?;
     Ok(path)
