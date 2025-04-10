@@ -102,7 +102,9 @@ impl Project {
                         filename.split_once(&format!("{}-", self.name.to_snake_case()))
                     })?
                     .1;
-                debug_assert!(self.versions.iter().any(|v| v == version));
+                if !self.versions.iter().any(|v| v == version) {
+                    eprintln!("INFO: version {version} not found");
+                }
                 Some((version.to_owned(), file))
             })
             .collect()
