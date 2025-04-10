@@ -9,6 +9,7 @@ use crate::run;
 
 mod build_tools;
 mod pydantic;
+mod regex;
 mod wheels;
 
 pub use build_tools::PythonVersion;
@@ -42,6 +43,8 @@ pub async fn install_build_tools() -> anyhow::Result<()> {
 pub enum SupportedProjects {
     /// <https://pypi.org/project/pydantic-core/>
     PydanticCore,
+    /// <https://pypi.org/project/regex/>
+    Regex,
 }
 
 /// Build a given package into a WASI wheel.
@@ -84,6 +87,9 @@ pub async fn build(
         let wheel_path = match project {
             SupportedProjects::PydanticCore => {
                 pydantic::build(*python_version, release_version, output_dir.clone()).await?
+            }
+            SupportedProjects::Regex => {
+                regex::build(*python_version, release_version, output_dir.clone()).await?
             }
         };
         wheel_paths.push(wheel_path);
