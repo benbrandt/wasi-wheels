@@ -37,7 +37,7 @@ pub fn default_wheel_flags<'a>(
         .env(
             "CFLAGS",
             format!(
-                "-I{}/include/python{python_version} -D__EMSCRIPTEN__=1",
+                "-I{}/include/python{python_version} -D__EMSCRIPTEN__=1 -fPIC",
                 cross_prefix.to_str().unwrap()
             ),
         )
@@ -71,7 +71,7 @@ pub fn wheel_path(
     ))
 }
 
-pub async fn retag_any_wheel(
+pub async fn retag_wheel(
     project: SupportedProjects,
     python_version: PythonVersion,
     package_dir: impl AsRef<Path>,
@@ -85,6 +85,11 @@ pub async fn retag_any_wheel(
         // Make it possible to not have to activate the venv
         .env("PATH", path_variable))
     .await?;
+
+    let old_wheel = glob::glob(&wheel.to_string_lossy().replace(PLATFORM_TAG, "*"))?
+        .next()
+        .ok_or(anyhow::anyhow!("Missing path"))??;
+
     run(Command::new("wheel")
         .args([
             "tags",
@@ -92,7 +97,7 @@ pub async fn retag_any_wheel(
             PLATFORM_TAG,
             "--remove",
             // Maturin outputs a wheel with `any` platform tag
-            &wheel.to_string_lossy().replace(PLATFORM_TAG, "any"),
+            old_wheel.to_str().unwrap(),
         ])
         // Make it possible to not have to activate the venv
         .env("PATH", path_variable))

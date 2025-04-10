@@ -6,7 +6,7 @@ use crate::{
     SupportedProjects,
     build::{
         build_tools::PythonVersion,
-        wheels::{default_wheel_flags, retag_any_wheel, wheel_path},
+        wheels::{default_wheel_flags, retag_wheel, wheel_path},
     },
     download_package, run,
 };
@@ -53,7 +53,7 @@ pub async fn build(
         .await?;
 
         // Rewrite the wheel to the correct target
-        retag_any_wheel(
+        retag_wheel(
             SupportedProjects::PydanticCore,
             python_version,
             package_dir,
