@@ -118,7 +118,7 @@ async fn publish_release(
 
     let hashes = generate_hashes(wheel_paths).await?;
 
-    let notes = format!("{notes}\n\n### SHA256 Hashes\n\n```\n{hashes}\n```");
+    let notes = format!("{notes}\n\n### SHA256 Hashes\n\n```\n{hashes}```");
 
     run(Command::new("gh").args(
         [
