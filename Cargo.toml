@@ -17,7 +17,7 @@ glob = "0.3.2"
 heck = "0.5.0"
 hex = "0.4.3"
 itertools = "0.14.0"
-octocrab = { version = "0.44.0", features = ["stream"] }
+octocrab = { version = "0.44.1", features = ["stream"] }
 regex = "1.11.1"
 reqwest = { version = "0.12.15", features = [
     "rustls-tls",
@@ -34,7 +34,7 @@ sha2 = "0.10.9"
 strum = { version = "0.27.1", features = ["derive"] }
 tar = "0.4.44"
 tempfile = "3.19.1"
-tokio = { version = "1.44.2", features = ["full"] }
+tokio = { version = "1.45.0", features = ["full"] }
 url = "2.5.4"
 
 [lints.rust]
@@ -54,4 +54,4 @@ pedantic = "warn"
 
 [dev-dependencies]
 assert_cmd = "2.0.17"
-tokio = { version = "1.44.2", features = ["test-util"] }
+tokio = { version = "1.45.0", features = ["test-util"] }
