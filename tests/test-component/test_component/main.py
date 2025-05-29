@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, PositiveInt
 
-from test import exports
+from wit_world import exports
 
 
 class User(BaseModel):
