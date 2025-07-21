@@ -29,9 +29,9 @@ reqwest = { version = "0.12.22", features = [
     "hickory-dns",
 ] }
 serde = { version = "1.0.219", features = ["derive"] }
-serde_json = "1.0.140"
+serde_json = "1.0.141"
 sha2 = "0.10.9"
-strum = { version = "0.27.1", features = ["derive"] }
+strum = { version = "0.27.2", features = ["derive"] }
 tar = "0.4.44"
 tempfile = "3.20.0"
 tokio = { version = "1.46.1", features = ["full"] }
