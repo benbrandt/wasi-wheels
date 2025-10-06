@@ -11,14 +11,14 @@ anyhow = "1.0.100"
 askama = "0.14.0"
 bytes = "1.10.1"
 clap = { version = "4.5.48", features = ["derive"] }
-flate2 = "1.1.2"
+flate2 = "1.1.4"
 futures-util = "0.3.31"
 glob = "0.3.3"
 heck = "0.5.0"
 hex = "0.4.3"
 itertools = "0.14.0"
-octocrab = { version = "0.45.0", features = ["stream"] }
-regex = "1.11.2"
+octocrab = { version = "0.46.0", features = ["stream"] }
+regex = "1.11.3"
 reqwest = { version = "0.12.23", features = [
     "rustls-tls",
     "json",
@@ -28,7 +28,7 @@ reqwest = { version = "0.12.23", features = [
     "deflate",
     "hickory-dns",
 ] }
-serde = { version = "1.0.226", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
 sha2 = "0.10.9"
 strum = { version = "0.27.2", features = ["derive"] }
