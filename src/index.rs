@@ -252,8 +252,14 @@ mod tests {
         let index = PythonPackageIndex::default();
         let project = index.project("pydantic-core").await?;
 
-        let mut versions = project.versions.clone();
-        versions.sort();
+        let versions = project
+            .versions
+            .iter()
+            // Bad publish
+            .filter(|&v| v != "2.41.3")
+            .sorted()
+            .cloned()
+            .collect::<Vec<_>>();
         let sdist_files = project.sdist_files();
 
         // There is one file for every version
