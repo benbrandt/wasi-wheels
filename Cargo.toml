@@ -8,7 +8,7 @@ license = "Apache-2.0"
 
 [dependencies]
 anyhow = "1.0.100"
-askama = "0.14.0"
+askama = "0.15.1"
 bytes = "1.11.0"
 clap = { version = "4.5.53", features = ["derive"] }
 flate2 = "1.1.5"
