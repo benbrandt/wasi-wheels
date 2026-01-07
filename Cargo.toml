@@ -29,13 +29,13 @@ reqwest = { version = "0.12.28", features = [
     "hickory-dns",
 ] }
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.148"
+serde_json = "1.0.149"
 sha2 = "0.10.9"
 strum = { version = "0.27.2", features = ["derive"] }
 tar = "0.4.44"
 tempfile = "3.24.0"
 tokio = { version = "1.49.0", features = ["full"] }
-url = "2.5.7"
+url = "2.5.8"
 
 [lints.rust]
 future_incompatible = { level = "warn", priority = -1 }
