@@ -14,6 +14,7 @@ Right now this tooling can:
 
 | **Supported Wheel**                                      | **Versions**  |
 | -------------------------------------------------------- | ------------- |
+| [MarkupSafe](https://pypi.org/project/MarkupSafe/)       | >= 3.0.2      |
 | [pydantic-core](https://pypi.org/project/pydantic-core/) | >= 2.18.3     |
 | [regex](https://pypi.org/project/regex/)                 | >= 2021.11.10 |
 
