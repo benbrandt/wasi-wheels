@@ -54,7 +54,7 @@ jobs:
         with:
           path: wasi-sdk-24.0
           key: wasi-sdk-24.0.0
-      - uses: bytecodealliance/actions/wasmtime/setup@3b93676295fd6f7eaa7af2c2785539e052fa8349
+      - uses: bytecodealliance/actions/wasmtime/setup@9152e710e9f7182e4c29ad218e4f335a7b203613
 
       - run: cargo run -- install-build-tools
       - run: cargo test --workspace --all-features
