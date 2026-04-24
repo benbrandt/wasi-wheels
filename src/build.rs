@@ -8,6 +8,7 @@ use tokio::{fs, process::Command};
 use crate::run;
 
 mod build_tools;
+mod markupsafe;
 mod pydantic;
 mod regex;
 mod wheels;
@@ -41,10 +42,25 @@ pub async fn install_build_tools() -> anyhow::Result<()> {
 #[derive(Debug, Clone, Copy, ValueEnum, strum::Display)]
 #[strum(serialize_all = "kebab-case")]
 pub enum SupportedProjects {
+    /// <https://pypi.org/project/MarkupSafe/>
+    MarkupSafe,
     /// <https://pypi.org/project/pydantic-core/>
     PydanticCore,
     /// <https://pypi.org/project/regex/>
     Regex,
+}
+
+impl SupportedProjects {
+    /// Returns the normalized package name used in wheel filenames.
+    /// This follows PEP 427 wheel filename convention where package names
+    /// are lowercased and hyphens are replaced with underscores.
+    pub fn wheel_name(&self) -> &'static str {
+        match self {
+            Self::MarkupSafe => "markupsafe",
+            Self::PydanticCore => "pydantic_core",
+            Self::Regex => "regex",
+        }
+    }
 }
 
 /// Build a given package into a WASI wheel.
@@ -85,6 +101,9 @@ pub async fn build(
 
     for python_version in python_versions {
         let wheel_path = match project {
+            SupportedProjects::MarkupSafe => {
+                markupsafe::build(*python_version, release_version, output_dir.clone()).await?
+            }
             SupportedProjects::PydanticCore => {
                 pydantic::build(*python_version, release_version, output_dir.clone()).await?
             }
