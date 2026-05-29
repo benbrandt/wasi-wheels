@@ -10,7 +10,7 @@ license = "Apache-2.0"
 anyhow = "1.0.102"
 askama = "0.15.6"
 bytes = "1.11.1"
-clap = { version = "4.5.60", features = ["derive"] }
+clap = { version = "4.6.1", features = ["derive"] }
 flate2 = "1.1.9"
 futures-util = "0.3.32"
 glob = "0.3.3"
@@ -29,12 +29,12 @@ reqwest = { version = "0.12.28", features = [
     "hickory-dns",
 ] }
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.149"
+serde_json = "1.0.150"
 sha2 = "0.10.9"
 strum = { version = "0.27.2", features = ["derive"] }
-tar = "0.4.45"
+tar = "0.4.46"
 tempfile = "3.27.0"
-tokio = { version = "1.52.1", features = ["full"] }
+tokio = { version = "1.52.3", features = ["full"] }
 url = "2.5.8"
 
 [lints.rust]
@@ -53,5 +53,5 @@ tail-expr-drop-order = "allow"
 pedantic = "warn"
 
 [dev-dependencies]
-assert_cmd = "2.2.1"
-tokio = { version = "1.52.1", features = ["test-util"] }
+assert_cmd = "2.2.2"
+tokio = { version = "1.52.3", features = ["test-util"] }
