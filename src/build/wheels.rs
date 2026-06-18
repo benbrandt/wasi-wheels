@@ -1,6 +1,5 @@
 use std::path::{Path, PathBuf};
 
-use heck::ToSnakeCase;
 use tokio::process::Command;
 
 use crate::run;
@@ -66,7 +65,7 @@ pub fn wheel_path(
 ) -> PathBuf {
     package_dir.as_ref().join(format!(
         "dist/{project}-{version}-cp{py_version}-cp{py_version}-{PLATFORM_TAG}.whl",
-        project = project.to_string().to_snake_case(),
+        project = project.wheel_name(),
         py_version = python_version.to_string().replace('.', "")
     ))
 }
